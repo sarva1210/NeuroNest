@@ -4,11 +4,17 @@ import { env } from "../../config/env.js";
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
 export const generateSummary = async (text) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash"
+    });
 
-  const result = await model.generateContent(
-    `Summarize this in 3 bullet points:\n${text}`
-  );
+    const result = await model.generateContent(text);
+    const response = await result.response;
 
-  return result.response.text();
+    return response.text();
+  } catch (err) {
+    console.error("Gemini Error:", err.message);
+    return "Summary not available";
+  }
 };
