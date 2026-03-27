@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 export const generateSummary = async (text) => {
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash"
+      model: "gemini-flash-latest"
     });
 
     const result = await model.generateContent(text);

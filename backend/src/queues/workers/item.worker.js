@@ -1,4 +1,3 @@
-import { connectDB } from "../../config/db.js";
 import { Worker } from "bullmq";
 import { redisConnection } from "../../config/redis.js";
 
@@ -14,86 +13,90 @@ import { createConnection } from "../../modules/graph/graph.service.js";
 import { upsertVector, querySimilar } from "../../services/vector/pinecone.service.js";
 import { searchWeb } from "../../services/ai/tavily.service.js";
 
-await connectDB();
-console.log("🔥 Worker started...");
-
 new Worker(
   "itemQueue",
   async (job) => {
-    try {
-      console.log("📦 Job received:", job.data);
+    const { itemId } = job.data;
 
-      const { itemId } = job.data;
+    const item = await Item.findById(itemId);
+    if (!item) return;
 
-      const item = await Item.findById(itemId);
-      if (!item) return;
+    const text =
+      typeof item.content === "string"
+        ? item.content
+        : item.content
+        ? JSON.stringify(item.content)
+        : item.url || item.fileUrl || "";
 
-      console.log("🧠 Processing item:", itemId);
-
-      let embedding = [];
-      let tags = [];
-      let summary = "";
-
-      try {
-        embedding = await generateEmbedding(item.content);
-        tags = await generateTags(item.content);
-        summary = await generateSummary(item.content);
-      } catch (err) {
-        console.error("❌ AI error:", err.message);
-        embedding = [];
-        tags = ["ai"];
-        summary = "Auto-generated summary unavailable";
-      }
-
-      let enrichment = [];
-      try {
-        enrichment = await searchWeb(item.content.slice(0, 100));
-      } catch (e) {}
-
-      let tagDocs = [];
-      try {
-        tagDocs = await upsertTags(tags, item.userId);
-      } catch (err) {}
-
-      try {
-        if (embedding.length) {
-          await upsertVector(item._id, embedding, {
-            userId: item.userId.toString(),
-            content: item.content.slice(0, 200)
-          });
-        }
-      } catch (err) {}
-
-      try {
-        if (embedding.length) {
-          const similar = await querySimilar(embedding);
-
-          for (const match of similar) {
-            if (
-              match.id !== item._id.toString() &&
-              match.score > 0.75
-            ) {
-              await createConnection(item._id, match.id, match.score);
-            }
-          }
-        }
-      } catch (err) {}
-
-      item.embedding = embedding;
-      item.tags = tagDocs.map((t) => t.name) || tags;
-      item.summary = summary;
-      item.status = "ready";
-      item.enrichment = enrichment?.slice(0, 3) || [];
-
+    if (!text || text.trim() === "") {
+      item.status = "failed";
       await item.save();
-
-      console.log("✅ Item processed:", itemId);
-
-    } catch (err) {
-      console.error("🔥 Worker fatal error:", err.message);
+      return;
     }
+
+    console.log("🧠 Processing item:", item._id);
+
+    let embedding = [];
+    let tags = [];
+    let summary = "";
+
+    console.log("➡️ Starting embedding...");
+    embedding = await generateEmbedding(text);
+    console.log("✅ Embedding done");
+
+    console.log("➡️ Starting tags...");
+    tags = await generateTags(text);
+    console.log("✅ Tags done");
+
+    console.log("➡️ Starting summary...");
+    summary = await generateSummary(text);
+    console.log("✅ Summary done");
+
+    console.log("➡️ Starting vector upsert...");
+    await upsertVector(item._id, embedding, {
+      userId: item.userId.toString(),
+      content: text.slice(0, 200)
+    });
+    console.log("✅ Vector stored");
+
+    let enrichment = [];
+    try {
+      enrichment = await searchWeb(text.slice(0, 100));
+    } catch (e) {
+      console.log("❌ Tavily error:", e.message);
+    }
+
+    const tagDocs = await upsertTags(tags, item.userId);
+
+    if (embedding.length > 0) {
+      await upsertVector(item._id, embedding, {
+        userId: item.userId.toString(),
+        content: text.slice(0, 200)
+      });
+    }
+
+    if (embedding.length > 0) {
+      const similar = await querySimilar(embedding);
+
+      for (const match of similar) {
+        if (
+          match.id !== item._id.toString() &&
+          match.score > 0.75
+        ) {
+          await createConnection(item._id, match.id, match.score);
+        }
+      }
+    }
+
+    item.embedding = embedding;
+    item.tags = Array.isArray(tags) ? tags : [];
+    item.summary = summary;
+    item.status = "ready";
+    item.enrichment = enrichment?.slice(0, 3);
+
+    await item.save();
+
+    console.log("✅ Item processed:", item._id);
   },
-  {
-    connection: redisConnection
-  }
+  { connection: redisConnection }
 );
