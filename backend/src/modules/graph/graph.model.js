@@ -1,9 +1,19 @@
 import mongoose from "mongoose";
 
-const graphSchema = new mongoose.Schema({
-  from: mongoose.Schema.Types.ObjectId,
-  to: mongoose.Schema.Types.ObjectId,
-  score: Number
+const connectionSchema = new mongoose.Schema({
+  from: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Item"
+  },
+  to: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Item"
+  },
+  score: Number,
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  }
 });
 
-export default mongoose.model("Graph", graphSchema);
+export default mongoose.model("Connection", connectionSchema);
