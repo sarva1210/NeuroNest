@@ -1,13 +1,31 @@
 import mongoose from "mongoose";
 
 const itemSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId,
-  type: String,
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+
+  type: {
+    type: String,
+    enum: ["text", "link", "youtube", "image", "pdf"]
+  },
+
   content: String,
-  summary: String,
+  url: String,
+  fileUrl: String,
+
   embedding: [Number],
   tags: [String],
-  status: { type: String, default: "processing" }
+  summary: String,
+
+  enrichment: [],
+
+  status: {
+    type: String,
+    default: "processing"
+  }
+
 }, { timestamps: true });
 
 export default mongoose.model("Item", itemSchema);
