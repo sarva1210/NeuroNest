@@ -1,27 +1,33 @@
 import { Pinecone } from "@pinecone-database/pinecone";
 import { env } from "../../config/env.js";
 
-const pc = new Pinecone({ apiKey: env.PINECONE_API_KEY });
-const index = pc.index(env.PINECONE_INDEX);
+const pc = new Pinecone({
+  apiKey: env.PINECONE_API_KEY
+});
 
-console.log("INDEX:", env.PINECONE_INDEX);
+const index = pc.Index(env.PINECONE_INDEX);
 
-export const upsertVector = async (id, embedding, metadata) => {
-  await index.upsert([
+export const upsertVector = async (id, text, metadata) => {
+  console.log("📡 Sending TEXT to Pinecone...");
+
+  await index.upsertRecords([
     {
       id: id.toString(),
-      values: embedding,
+      text: text,
       metadata
     }
   ]);
+
+  console.log("Pinecone stored (text mode)");
 };
 
-export const querySimilar = async (embedding) => {
-  const res = await index.query({
-    vector: embedding,
-    topK: 5,
-    includeMetadata: true
+export const querySimilar = async (queryText) => {
+  const res = await index.search({
+    query: {
+      topK: 5,
+      inputs: { text: queryText }
+    }
   });
 
-  return res.matches;
+  return res.matches || [];
 };

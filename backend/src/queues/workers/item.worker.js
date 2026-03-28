@@ -1,6 +1,9 @@
 import { Worker } from "bullmq";
 import { redisConnection } from "../../config/redis.js";
 
+import mongoose from "mongoose";
+import { env } from "../../config/env.js";
+
 import Item from "../../modules/item/item.model.js";
 
 import { generateEmbedding } from "../../services/ai/embedding.service.js";
@@ -12,6 +15,12 @@ import { createConnection } from "../../modules/graph/graph.service.js";
 
 import { upsertVector, querySimilar } from "../../services/vector/pinecone.service.js";
 import { searchWeb } from "../../services/ai/tavily.service.js";
+
+console.log("🔥 Worker starting...");
+
+await mongoose.connect(env.MONGO_URI);
+
+console.log("✅ MongoDB connected (worker)");
 
 new Worker(
   "itemQueue",
@@ -67,13 +76,6 @@ new Worker(
     }
 
     const tagDocs = await upsertTags(tags, item.userId);
-
-    if (embedding.length > 0) {
-      await upsertVector(item._id, embedding, {
-        userId: item.userId.toString(),
-        content: text.slice(0, 200)
-      });
-    }
 
     if (embedding.length > 0) {
       const similar = await querySimilar(embedding);
