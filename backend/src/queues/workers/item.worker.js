@@ -16,11 +16,11 @@ import { createConnection } from "../../modules/graph/graph.service.js";
 import { upsertVector, querySimilar } from "../../services/vector/pinecone.service.js";
 import { searchWeb } from "../../services/ai/tavily.service.js";
 
-console.log("🔥 Worker starting...");
+console.log("Worker starting...");
 
 await mongoose.connect(env.MONGO_URI);
 
-console.log("✅ MongoDB connected (worker)");
+console.log("MongoDB connected (worker)");
 
 new Worker(
   "itemQueue",
@@ -43,7 +43,7 @@ new Worker(
       return;
     }
 
-    console.log("🧠 Processing item:", item._id);
+    console.log("Processing item:", item._id);
 
     let embedding = [];
     let tags = [];
