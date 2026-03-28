@@ -49,17 +49,17 @@ new Worker(
     let tags = [];
     let summary = "";
 
-    console.log("➡️ Starting embedding...");
+    console.log("Starting embedding...");
     embedding = await generateEmbedding(text);
-    console.log("✅ Embedding done");
+    console.log("Embedding done");
 
-    console.log("➡️ Starting tags...");
+    console.log("Starting tags...");
     tags = await generateTags(text);
-    console.log("✅ Tags done");
+    console.log("Tags done");
 
-    console.log("➡️ Starting summary...");
+    console.log("Starting summary...");
     summary = await generateSummary(text);
-    console.log("✅ Summary done");
+    console.log("Summary done");
 
     console.log("➡️ Starting vector upsert...");
     await upsertVector(item._id, embedding, {
