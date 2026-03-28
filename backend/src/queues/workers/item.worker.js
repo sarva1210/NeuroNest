@@ -61,18 +61,18 @@ new Worker(
     summary = await generateSummary(text);
     console.log("Summary done");
 
-    console.log("➡️ Starting vector upsert...");
+    console.log("Starting vector upsert...");
     await upsertVector(item._id, embedding, {
       userId: item.userId.toString(),
       content: text.slice(0, 200)
     });
-    console.log("✅ Vector stored");
+    console.log("Vector stored");
 
     let enrichment = [];
     try {
       enrichment = await searchWeb(text.slice(0, 100));
     } catch (e) {
-      console.log("❌ Tavily error:", e.message);
+      console.log("Tavily error:", e.message);
     }
 
     const tagDocs = await upsertTags(tags, item.userId);
@@ -98,7 +98,7 @@ new Worker(
 
     await item.save();
 
-    console.log("✅ Item processed:", item._id);
+    console.log("Item processed:", item._id);
   },
   { connection: redisConnection }
 );
