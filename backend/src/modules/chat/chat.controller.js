@@ -1,17 +1,20 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { chatWithMemory } from "../../services/chat/chat.service.js";
+import { chatWithMemoryService } from "./chat.service.js";
 
-export const chat = asyncHandler(async (req, res) => {
+export const chatWithMemory = asyncHandler(async (req, res) => {
   const { query } = req.body;
 
   if (!query) {
-    return res.status(400).json({ message: "Query required" });
+    return res.status(400).json({
+      success: false,
+      message: "Query is required"
+    });
   }
 
-  const answer = await chatWithMemory(query, req.user.id);
+  const result = await chatWithMemoryService(query, req.user.id);
 
   res.json({
     success: true,
-    answer
+    data: result
   });
 });

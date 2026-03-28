@@ -1,5 +1,10 @@
-import Graph from "./graph.model.js";
+import Connection from "./graph.model.js";
 
-export const createConnection = async (from, to, score) => {
-  return await Graph.create({ from, to, score });
+export const createConnection = async (from, to, score, userId) => {
+  return await Connection.create({
+    from,
+    to,
+    score,
+    userId
+  });
 };
