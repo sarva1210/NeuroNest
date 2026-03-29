@@ -2,44 +2,35 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import { env } from "../../config/env.js";
 
 const pc = new Pinecone({
-  apiKey: env.PINECONE_API_KEY,
-  environment: "us-east-1"
+  apiKey: env.PINECONE_API_KEY
 });
 
-const index = pc.index(env.PINECONE_INDEX);
+const index = pc.Index(env.PINECONE_INDEX);
 
 const sanitizeMetadata = (metadata = {}) => {
   return {
-    title: String(metadata?.title || ""),
-    type: String(metadata?.type || ""),
     content: String(metadata?.content || ""),
+    type: String(metadata?.type || ""),
     userId: String(metadata?.userId || "")
   };
 };
 
 export const upsertVector = async (id, embedding, metadata = {}) => {
   try {
-    if (!embedding) return;
+    if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
+      console.log("Invalid embedding");
+      return;
+    }
 
-    const vector =
-      Array.isArray(embedding)
-        ? embedding
-        : embedding?.data?.[0]?.embedding;
+    const cleanEmbedding = embedding.map(Number);
 
-    if (!vector || !Array.isArray(vector) || vector.length === 0) return;
-
-    const cleanEmbedding = vector.map((v) => Number(v));
-    const safeMetadata = sanitizeMetadata(metadata);
-
-    await index.upsert({
-      vectors: [
-        {
-          id: String(id),
-          values: cleanEmbedding,
-          metadata: safeMetadata
-        }
-      ]
-    });
+    await index.upsert([
+      {
+        id: String(id),
+        values: cleanEmbedding,
+        metadata: sanitizeMetadata(metadata)
+      }
+    ]);
 
     console.log("Pinecone stored");
   } catch (err) {
@@ -49,16 +40,9 @@ export const upsertVector = async (id, embedding, metadata = {}) => {
 
 export const querySimilar = async (embedding) => {
   try {
-    if (!embedding) return [];
+    if (!embedding || !Array.isArray(embedding)) return [];
 
-    const vector =
-      Array.isArray(embedding)
-        ? embedding
-        : embedding?.data?.[0]?.embedding;
-
-    if (!vector || !Array.isArray(vector) || vector.length === 0) return [];
-
-    const cleanEmbedding = vector.map((v) => Number(v));
+    const cleanEmbedding = embedding.map(Number);
 
     const res = await index.query({
       vector: cleanEmbedding,

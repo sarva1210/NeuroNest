@@ -10,6 +10,8 @@ import graphRoutes from "./modules/graph/graph.routes.js";
 import resurfaceRoutes from "./modules/resurface/resurface.routes.js";
 import collectionRoutes from "./modules/collection/collection.routes.js";
 import highlightRoutes from "./modules/highlight/highlight.routes.js";
+import insightRoutes from "./modules/insight/insight.routes.js";
+import timelineRoutes from "./modules/timeline/timeline.routes.js";
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use("/api/graph", graphRoutes);
 app.use("/api/resurface", resurfaceRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/highlights", highlightRoutes);
+app.use("/api/insights", insightRoutes);
+app.use("/api/timeline", timelineRoutes);
 
 app.use(errorHandler);
 

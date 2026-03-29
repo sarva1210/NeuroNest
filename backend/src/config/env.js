@@ -9,7 +9,7 @@ export const env = {
 
   PINECONE_API_KEY: process.env.PINECONE_API_KEY,
   PINECONE_INDEX: process.env.PINECONE_INDEX,
-  PINECONE_ENV: process.env.PINECONE_ENV,
+  // PINECONE_ENV: process.env.PINECONE_ENV,
 
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 

@@ -1,6 +1,7 @@
 import { createItemService, getUserItems } from "./item.service.js";
 import { addItemJob } from "../../queues/item.queue.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
+import Item from "./item.model.js";
 
 export const createItem = asyncHandler(async (req, res) => {
   const { type, content, url, fileUrl } = req.body;
@@ -14,7 +15,6 @@ export const createItem = asyncHandler(async (req, res) => {
   });
 
   await addItemJob(item._id);
-  console.log("Job added:", item._id);
 
   res.json({
     success: true,
@@ -28,5 +28,20 @@ export const getItems = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: items
+  });
+});
+
+export const openItem = asyncHandler(async (req, res) => {
+  const { itemId } = req.params;
+
+  const item = await Item.findByIdAndUpdate(
+    itemId,
+    { lastAccessed: new Date() },
+    { new: true }
+  );
+
+  res.json({
+    success: true,
+    data: item
   });
 });

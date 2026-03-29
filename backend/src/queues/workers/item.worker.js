@@ -50,10 +50,11 @@ new Worker(
       const tags = await generateTags(text);
       const summary = await generateSummary(text);
 
-      console.log("➡️ Pinecone upsert...");
+      console.log("Pinecone upsert...");
       await upsertVector(item._id, embedding, {
-        userId: item.userId.toString(),
-        content: text.slice(0, 200)
+        content: text.slice(0, 200),
+        type: item.type,
+        userId: item.userId.toString()
       });
 
       let enrichment = [];
@@ -73,7 +74,7 @@ new Worker(
             match.id !== item._id.toString() &&
             match.score > 0.75
           ) {
-            await createConnection(item._id, match.id, match.score);
+            await createConnection(item._id, match.id, match.score, item.userId);
           }
         }
       }
