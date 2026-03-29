@@ -2,32 +2,75 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import { env } from "../../config/env.js";
 
 const pc = new Pinecone({
-  apiKey: env.PINECONE_API_KEY
+  apiKey: env.PINECONE_API_KEY,
+  environment: "us-east-1"
 });
 
-const index = pc.Index(env.PINECONE_INDEX);
+const index = pc.index(env.PINECONE_INDEX);
 
-export const upsertVector = async (id, text, metadata) => {
-  console.log("📡 Sending TEXT to Pinecone...");
-
-  await index.upsertRecords([
-    {
-      id: id.toString(),
-      text: text,
-      metadata
-    }
-  ]);
-
-  console.log("Pinecone stored (text mode)");
+const sanitizeMetadata = (metadata = {}) => {
+  return {
+    title: String(metadata?.title || ""),
+    type: String(metadata?.type || ""),
+    content: String(metadata?.content || ""),
+    userId: String(metadata?.userId || "")
+  };
 };
 
-export const querySimilar = async (queryText) => {
-  const res = await index.search({
-    query: {
+export const upsertVector = async (id, embedding, metadata = {}) => {
+  try {
+    if (!embedding) return;
+
+    const vector =
+      Array.isArray(embedding)
+        ? embedding
+        : embedding?.data?.[0]?.embedding;
+
+    if (!vector || !Array.isArray(vector) || vector.length === 0) return;
+
+    const cleanEmbedding = vector.map((v) => Number(v));
+    const safeMetadata = sanitizeMetadata(metadata);
+
+    await index.upsert({
+      vectors: [
+        {
+          id: String(id),
+          values: cleanEmbedding,
+          metadata: safeMetadata
+        }
+      ]
+    });
+
+    console.log("Pinecone stored");
+  } catch (err) {
+    console.log("UPSERT ERROR:", err);
+  }
+};
+
+export const querySimilar = async (embedding) => {
+  try {
+    if (!embedding) return [];
+
+    const vector =
+      Array.isArray(embedding)
+        ? embedding
+        : embedding?.data?.[0]?.embedding;
+
+    if (!vector || !Array.isArray(vector) || vector.length === 0) return [];
+
+    const cleanEmbedding = vector.map((v) => Number(v));
+
+    const res = await index.query({
+      vector: cleanEmbedding,
       topK: 5,
-      inputs: { text: queryText }
-    }
-  });
+      includeMetadata: true
+    });
 
-  return res.matches || [];
+    return res.matches || [];
+  } catch (err) {
+    console.log("QUERY ERROR:", err);
+    return [];
+  }
 };
+
+// environment: env.PINECONE_ENV

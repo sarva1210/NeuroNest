@@ -1,31 +1,31 @@
+import { generateEmbedding } from "../../services/ai/embedding.service.js";
+import { querySimilar } from "../../services/vector/pinecone.service.js";
 import Item from "../item/item.model.js";
 
 export const semanticSearchService = async (query, userId) => {
-  const q = query.toLowerCase();
+  const embedding = await generateEmbedding(query);
+
+  const matches = await querySimilar(embedding);
+
+  const ids = matches.map((m) => m.id);
+
+  if (!ids.length) return [];
 
   const items = await Item.find({
-    userId,
-    $or: [
-      { content: { $regex: q, $options: "i" } },
-      { summary: { $regex: q, $options: "i" } },
-      { tags: { $in: [q] } }
-    ]
+    _id: { $in: ids },
+    userId
   });
 
   const scored = items.map((item) => {
-    let score = 0;
-
-    if (item.content?.toLowerCase().includes(q)) score += 2;
-    if (item.summary?.toLowerCase().includes(q)) score += 1;
-    if (item.tags?.includes(q)) score += 3;
+    const match = matches.find(
+      (m) => m.id === item._id.toString()
+    );
 
     return {
       ...item.toObject(),
-      score
+      score: match?.score || 0
     };
   });
 
-  scored.sort((a, b) => b.score - a.score);
-
-  return scored;
+  return scored.sort((a, b) => b.score - a.score);
 };

@@ -9,5 +9,9 @@ export const generateEmbedding = async (text) => {
     inputs: text
   });
 
-  return res.data[0].embedding;
+  const embedding = res.data?.[0]?.embedding;
+
+  console.log("EMBEDDING LENGTH:", embedding?.length);
+
+  return embedding || [];
 };
