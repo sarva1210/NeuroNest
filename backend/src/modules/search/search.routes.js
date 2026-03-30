@@ -1,14 +1,10 @@
 import express from "express";
-import { semanticSearch } from "./search.controller.js";
+import { semanticSearch, askAI } from "./search.controller.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-/**
- * @route POST /api/search
- * @desc Semantic search
- * @access Private
- */
-router.post("/", authMiddleware, semanticSearch);
+router.post("/", semanticSearch);
+router.get("/ask", askAI);
 
 export default router;

@@ -11,11 +11,18 @@ const cosineSimilarity = (a, b) => {
 export const semanticSearchService = async (query, userId) => {
   const queryEmbedding = await generateEmbedding(query);
 
-  const items = await Item.find({
-    userId,
+  // dynamic filter
+  const filter = {
     status: "ready",
     embedding: { $exists: true, $ne: [] }
-  });
+  };
+
+  // only add userId if exists
+  if (userId) {
+    filter.userId = userId;
+  }
+
+  const items = await Item.find(filter);
 
   const scored = items.map((item) => {
     const score = cosineSimilarity(queryEmbedding, item.embedding);
