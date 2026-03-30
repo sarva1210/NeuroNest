@@ -4,6 +4,6 @@ export const createItemService = async (data) => {
   return await Item.create(data);
 };
 
-export const getUserItems = async (userId) => {
-  return await Item.find({ userId }).sort({ createdAt: -1 });
+export const getUserItems = async () => {
+  return await Item.find().sort({ createdAt: -1 });
 };

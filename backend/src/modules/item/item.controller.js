@@ -3,6 +3,7 @@ import { addItemJob } from "../../queues/item.queue.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import Item from "./item.model.js";
 
+
 export const createItem = asyncHandler(async (req, res) => {
   const { type, content, url, fileUrl } = req.body;
 
@@ -11,23 +12,22 @@ export const createItem = asyncHandler(async (req, res) => {
     content,
     url,
     fileUrl,
-    userId: req.user.id
   });
 
   await addItemJob(item._id);
 
   res.json({
     success: true,
-    data: item
+    data: item,
   });
 });
 
 export const getItems = asyncHandler(async (req, res) => {
-  const items = await getUserItems(req.user.id);
+  const items = await getUserItems();
 
   res.json({
     success: true,
-    data: items
+    data: items,
   });
 });
 
@@ -42,6 +42,21 @@ export const openItem = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: item
+    data: item,
   });
 });
+
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = {
+      notes: await Item.countDocuments({ type: "note" }),
+      videos: await Item.countDocuments({ type: "youtube" }),
+      tweets: await Item.countDocuments({ type: "tweet" }),
+      docs: await Item.countDocuments({ type: "doc" }),
+    };
+
+    res.json(stats);
+  } catch (err) {
+    next(err);
+  }
+};
