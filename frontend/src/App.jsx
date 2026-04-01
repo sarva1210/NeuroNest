@@ -3,6 +3,7 @@ import Dashboard from "./pages/Dashboard";
 import Feed from "./pages/Feed";
 import Chat from "./pages/Chat";
 import Graph from "./pages/Graph";
+import Collections from "./pages/Collections";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/feed" element={<Feed />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/graph" element={<Graph />} />
+        <Route path="/collections" element={<Collections />} />
       </Routes>
     </BrowserRouter>
   );
