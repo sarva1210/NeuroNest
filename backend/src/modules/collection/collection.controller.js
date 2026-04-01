@@ -23,6 +23,21 @@ export const addToCollection = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+// (REMOVE)
+export const removeFromCollection = asyncHandler(async (req, res) => {
+  const { collectionId, itemId } = req.body;
+
+  const collection = await Collection.findById(collectionId);
+
+  collection.items = collection.items.filter(
+    (id) => id.toString() !== itemId
+  );
+
+  await collection.save();
+
+  res.json({ success: true });
+});
+
 export const getCollections = asyncHandler(async (req, res) => {
   const collections = await Collection.find({
     userId: req.user.id
