@@ -12,6 +12,7 @@ export const createItem = asyncHandler(async (req, res) => {
     content,
     url,
     fileUrl,
+    userId: req.user.id
   });
 
   await addItemJob(item._id);
@@ -23,7 +24,8 @@ export const createItem = asyncHandler(async (req, res) => {
 });
 
 export const getItems = asyncHandler(async (req, res) => {
-  const items = await getUserItems();
+  const items = await Item.find({ userId: req.user.id })
+    .sort({ createdAt: -1 });
 
   res.json({
     success: true,
