@@ -26,7 +26,7 @@ export const getGraph = asyncHandler(async (req, res) => {
     success: true,
     data: {
       nodes,
-      edges
+      links: edges
     }
   });
 });
