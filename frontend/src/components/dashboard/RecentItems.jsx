@@ -31,7 +31,7 @@ export default function RecentItems() {
       ) : items.length === 0 ? (
         <p className="text-zinc-500">No items yet</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
           {items.slice(0, 5).map((item) => (
             <ItemCard key={item._id} item={item} />
           ))}

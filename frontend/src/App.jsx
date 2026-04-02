@@ -1,19 +1,37 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Feed from "./pages/Feed";
 import Chat from "./pages/Chat";
 import Graph from "./pages/Graph";
 import Collections from "./pages/Collections";
+import Auth from "./pages/Auth";
 
 export default function App() {
+  const isLoggedIn = !!localStorage.getItem("token");
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/feed" element={<Feed />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/graph" element={<Graph />} />
-        <Route path="/collections" element={<Collections />} />
+
+        {/* AUTH ROUTE */}
+        <Route
+          path="/auth"
+          element={isLoggedIn ? <Navigate to="/" /> : <Auth />}
+        />
+
+        {/* PROTECTED ROUTES */}
+        {isLoggedIn ? (
+          <>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/graph" element={<Graph />} />
+            <Route path="/collections" element={<Collections />} />
+          </>
+        ) : (
+          <Route path="*" element={<Navigate to="/auth" />} />
+        )}
+
       </Routes>
     </BrowserRouter>
   );
