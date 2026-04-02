@@ -6,7 +6,7 @@ import AIPanel from "../components/dashboard/AIPanel";
 export default function Dashboard() {
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-6">
+      <h1 className="text-2xl font-bold mb-4">
         Dashboard
       </h1>
 
