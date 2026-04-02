@@ -3,17 +3,22 @@ import Header from "./Header";
 
 export default function Layout({ children }) {
   return (
-    <div className="flex">
-      {/* Sidebar */}
-      <Sidebar />
+    <div className="flex h-screen w-screen overflow-hidden">
 
-      {/* Main Content */}
-      <div className="flex-1 bg-zinc-950 min-h-screen text-white">
+      {/* Sidebar */}
+      <div className="w-64 shrink-0">
+        <Sidebar />
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col bg-zinc-950 text-white">
+
         <Header />
 
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {children}
         </div>
+
       </div>
     </div>
   );
