@@ -1,13 +1,19 @@
 import API from "./api";
 
-// semantic search
+// SEMANTIC SEARCH
 export const searchItems = async (query) => {
-  const res = await API.get(`/search?q=${query}`);
+  const res = await API.post("/search", {
+    query,
+  });
+
   return res.data;
 };
 
-// AI ASK
+// ASK AI
 export const askAI = async (query) => {
-  const res = await API.get(`/search/ask?q=${query}`);
+  const res = await API.post("/search/ask", {
+    query,
+  });
+
   return res.data;
 };
