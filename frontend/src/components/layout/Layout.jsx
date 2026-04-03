@@ -1,21 +1,40 @@
+import { useState } from "react";
 import Sidebar from "./Sidebar";
-import Header from "./Header";
 
 export default function Layout({ children }) {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
+    <div className="flex h-screen bg-[#0b0b0b] text-white">
 
-      {/* Sidebar */}
-      <div className="w-64 shrink-0">
-        <Sidebar />
-      </div>
+      {/* SIDEBAR */}
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col bg-zinc-950 text-white">
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col">
 
-        <Header />
+        {/* TOPBAR */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-800">
 
-        <div className="flex-1 overflow-y-auto p-6">
+          <input
+            placeholder="Search your brain..."
+            className="bg-zinc-800 px-4 py-2 rounded-xl w-[300px] outline-none focus:ring-2 focus:ring-purple-600 transition"
+          />
+
+          <div className="flex gap-3">
+            <button className="bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-2 rounded-xl shadow-md">
+              + Add Content
+            </button>
+
+            <button className="bg-red-500 px-4 py-2 rounded-xl">
+              Logout
+            </button>
+          </div>
+
+        </div>
+
+        {/* CONTENT */}
+        <div className="p-6 overflow-y-auto">
           {children}
         </div>
 
