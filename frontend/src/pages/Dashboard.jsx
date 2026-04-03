@@ -45,13 +45,14 @@ export default function Dashboard() {
         <Card title="Docs" value={stats.docs} />
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      {/* 🔥 MAIN GRID FIX */}
+      <div className="grid grid-cols-3 gap-6 h-[calc(100vh-220px)]">
 
-        {/* RECENT */}
-        <div className="col-span-2 bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22]">
+        {/* LEFT (SCROLL ONLY HERE) */}
+        <div className="col-span-2 bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] overflow-y-auto">
           <h2 className="mb-4 font-semibold">Recent Saves</h2>
 
-          {items.slice(0, 5).map(item => (
+          {items.map(item => (
             <div
               key={item._id}
               className="bg-[#121212] p-4 mb-3 rounded-lg border border-[#3a2a22]"
@@ -78,8 +79,8 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* INSIGHTS */}
-        <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22]">
+        {/* RIGHT (NO SCROLL 🔥) */}
+        <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] sticky top-6 h-fit">
           <h2 className="mb-4 font-semibold">AI Insights</h2>
 
           <ul className="text-sm text-gray-400 space-y-2">

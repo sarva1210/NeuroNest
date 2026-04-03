@@ -1,40 +1,104 @@
-import Layout from "../components/layout/Layout";
-import API from "../services/api";
 import { useEffect, useState } from "react";
+import API from "../services/api";
+import Layout from "../components/layout/Layout";
 
 export default function Collections() {
   const [collections, setCollections] = useState([]);
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    API.get("/collections").then(res => setCollections(res.data.data));
+    fetchCollections();
   }, []);
 
-  const removeItem = async (collectionId, itemId) => {
-    await API.post("/collections/remove", { collectionId, itemId });
-    window.location.reload();
+  const fetchCollections = async () => {
+    try {
+      const res = await API.get("/collections");
+      setCollections(res.data.data || []);
+    } catch (err) {
+      console.log(err);
+    }
   };
+
+  // REATE COLLECTION (no duplicate clicks)
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+
+    try {
+      setLoading(true);
+
+      await API.post("/collections", { name });
+
+      setName("");
+      fetchCollections();
+    } catch (err) {
+      console.log(err.response?.data || err.message);
+      alert("Collection already exists");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // DELETE COLLECTION
+  const handleDelete = async (id) => {
+    try {
+      await API.delete(`/collections/${id}`);
+      fetchCollections();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // REMOVE DUPLICATES (frontend safety)
+  const uniqueCollections = Array.from(
+    new Map(collections.map((c) => [c.name, c])).values()
+  );
 
   return (
     <Layout>
-      <h1 className="text-xl mb-4">Collections</h1>
+      <h1 className="text-2xl font-bold mb-6">Collections</h1>
 
-      {collections.map(c => (
-        <div key={c._id} className="bg-zinc-800 p-4 rounded-xl mb-4">
-          <h2>{c.name}</h2>
+      {/* CREATE */}
+      <div className="flex gap-3 mb-6">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="New collection..."
+          className="bg-zinc-800 px-4 py-2 rounded-lg w-[250px]"
+        />
 
-          {c.items?.map(item => (
-            <div key={item._id} className="flex justify-between mt-2">
-              <span>{item.content}</span>
-              <button
-                onClick={() => removeItem(c._id, item._id)}
-                className="text-red-400 text-xs"
-              >
-                Delete
-              </button>
+        <button
+          onClick={handleCreate}
+          disabled={loading}
+          className="bg-purple-600 px-4 py-2 rounded-lg disabled:opacity-50"
+        >
+          {loading ? "Creating..." : "Create"}
+        </button>
+      </div>
+
+      {/* LIST */}
+      <div className="space-y-4">
+        {uniqueCollections.map((col) => (
+          <div
+            key={col._id}
+            className="flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800"
+          >
+            <div>
+              <h2 className="font-semibold">{col.name}</h2>
+              <p className="text-sm text-zinc-400">
+                {col.items?.length || 0} items
+              </p>
             </div>
-          ))}
-        </div>
-      ))}
+
+            <button
+              onClick={() => handleDelete(col._id)}
+              className="text-red-400 hover:text-red-600"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
     </Layout>
   );
 }

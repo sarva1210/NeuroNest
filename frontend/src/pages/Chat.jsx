@@ -1,66 +1,86 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Layout from "../components/layout/Layout";
 import API from "../services/api";
 
 export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const send = async () => {
-    if (!input) return;
+  const bottomRef = useRef();
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userMsg = { role: "user", text: input };
+
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
 
     try {
-      const res = await API.post("/chat", {
-        message: input,
-        history: messages,
+      const res = await API.post("/search/ask", {
+        query: input,
       });
 
-      setMessages([
-        ...messages,
-        { role: "user", text: input },
-        { role: "ai", text: res.data.answer },
-      ]);
+      const aiMsg = {
+        role: "ai",
+        text: res.data.answer,
+      };
 
-      setInput("");
+      setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Layout>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-[80vh]">
 
-        <div className="flex-1 overflow-y-auto space-y-3">
-          {messages.map((m, i) => (
+        {/* CHAT AREA */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+          {messages.map((msg, i) => (
             <div
               key={i}
-              className={`p-3 rounded-xl max-w-md ${
-                m.role === "user"
+              className={`max-w-xl p-3 rounded-xl ${
+                msg.role === "user"
                   ? "bg-purple-600 ml-auto"
                   : "bg-zinc-800"
               }`}
             >
-              {m.text}
+              {msg.text}
             </div>
           ))}
+
+          {loading && <p className="text-zinc-400">Thinking...</p>}
+
+          <div ref={bottomRef} />
         </div>
 
-        <div className="flex gap-2 mt-4">
+        {/* INPUT */}
+        <div className="flex gap-2 p-4 border-t border-zinc-800">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 bg-zinc-800 p-3 rounded-lg"
             placeholder="Ask anything..."
+            className="flex-1 bg-zinc-900 p-3 rounded-lg"
           />
+
           <button
-            onClick={send}
+            onClick={handleSend}
             className="bg-purple-600 px-4 rounded-lg"
           >
             Send
           </button>
         </div>
-
       </div>
     </Layout>
   );
