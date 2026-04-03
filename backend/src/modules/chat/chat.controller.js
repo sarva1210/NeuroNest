@@ -1,20 +1,48 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { chatWithMemoryService } from "./chat.service.js";
+import { semanticSearchService } from "../search/search.service.js";
+import { generateAnswer } from "../../services/ai/summary.service.js";
+import { searchWeb } from "../../services/ai/tavily.service.js";
 
-export const chatWithMemory = asyncHandler(async (req, res) => {
-  const { query } = req.body;
+export const chatAI = asyncHandler(async (req, res) => {
+  const { message, history = [] } = req.body;
 
-  if (!query) {
-    return res.status(400).json({
-      success: false,
-      message: "Query is required"
-    });
+  if (!message) {
+    return res.status(400).json({ message: "Message required" });
   }
 
-  const result = await chatWithMemoryService(query, req.user.id);
+  let results = await semanticSearchService(message, req.user.id);
+
+  let context = "";
+  let source = "database";
+
+  if (!results.length) {
+    const web = await searchWeb(message);
+
+    context = web.map(r => `${r.title}\n${r.content}`).join("\n\n");
+    source = "web";
+  } else {
+    context = results.map(i => i.content).join("\n\n");
+  }
+
+  const historyText = history
+    .map(msg => `${msg.role}: ${msg.text}`)
+    .join("\n");
+
+  const prompt = `
+Conversation:
+${historyText}
+
+User: ${message}
+
+Context:
+${context}
+`;
+
+  const answer = await generateAnswer(prompt, "");
 
   res.json({
-    success: true,
-    data: result
+    answer,
+    items: results,
+    source,
   });
 });

@@ -1,20 +1,22 @@
 import { Pinecone } from "@pinecone-database/pinecone";
 import { env } from "../../config/env.js";
 
+// FIXED CONFIG
 const pc = new Pinecone({
-  apiKey: env.PINECONE_API_KEY
+  apiKey: env.PINECONE_API_KEY,
+  environment: env.PINECONE_ENV,
 });
 
-const index = pc.Index(env.PINECONE_INDEX);
+const index = pc.index(env.PINECONE_INDEX);
 
-const sanitizeMetadata = (metadata = {}) => {
-  return {
-    content: String(metadata?.content || ""),
-    type: String(metadata?.type || ""),
-    userId: String(metadata?.userId || "")
-  };
-};
+// CLEAN METADATA
+const sanitizeMetadata = (metadata = {}) => ({
+  content: String(metadata?.content || ""),
+  type: String(metadata?.type || ""),
+  userId: String(metadata?.userId || ""),
+});
 
+// UPSERT
 export const upsertVector = async (id, embedding, metadata = {}) => {
   try {
     if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
@@ -28,8 +30,8 @@ export const upsertVector = async (id, embedding, metadata = {}) => {
       {
         id: String(id),
         values: cleanEmbedding,
-        metadata: sanitizeMetadata(metadata)
-      }
+        metadata: sanitizeMetadata(metadata),
+      },
     ]);
 
     console.log("Pinecone stored");
@@ -38,6 +40,7 @@ export const upsertVector = async (id, embedding, metadata = {}) => {
   }
 };
 
+// QUERY
 export const querySimilar = async (embedding) => {
   try {
     if (!embedding || !Array.isArray(embedding)) return [];
@@ -47,7 +50,7 @@ export const querySimilar = async (embedding) => {
     const res = await index.query({
       vector: cleanEmbedding,
       topK: 5,
-      includeMetadata: true
+      includeMetadata: true,
     });
 
     return res.matches || [];
@@ -56,5 +59,3 @@ export const querySimilar = async (embedding) => {
     return [];
   }
 };
-
-// environment: env.PINECONE_ENV
