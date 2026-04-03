@@ -4,6 +4,7 @@ import API from "../../services/api";
 export default function ItemCard({ item, collectionId }) {
   const [collections, setCollections] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [removed, setRemoved] = useState(false); // 🔥 no reload
 
   // FETCH COLLECTIONS
   useEffect(() => {
@@ -27,14 +28,14 @@ export default function ItemCard({ item, collectionId }) {
         itemId: item._id,
       });
 
-      alert("Added");
       setShowDropdown(false);
+      alert("Added");
     } catch (err) {
       console.error(err);
     }
   };
 
-  //REMOVE
+  // REMOVE (no reload)
   const handleRemove = async () => {
     try {
       await API.post("/collections/remove", {
@@ -42,36 +43,64 @@ export default function ItemCard({ item, collectionId }) {
         itemId: item._id,
       });
 
-      alert("Removed");
-      window.location.reload();
+      setRemoved(true);
     } catch (err) {
       console.error(err);
     }
   };
 
-  return (
-    <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700 hover:border-zinc-600 transition relative">
+  // hide after remove
+  if (removed) return null;
 
+  return (
+    <div className="bg-zinc-800 p-4 rounded-xl border border-zinc-700 hover:border-purple-500 transition relative">
+
+      {/* TYPE */}
+      <p className="text-xs text-purple-400 mb-1 capitalize">
+        {item.type}
+      </p>
+
+      {/* TITLE */}
       <h3 className="font-semibold text-white mb-2">
-        {item.title || "Untitled"}
+        {item.content?.slice(0, 40) || item.url || "Untitled"}
       </h3>
 
+      {/* CONTENT */}
       {item.content && (
         <p className="text-sm text-zinc-400 line-clamp-3 mb-3">
           {item.content}
         </p>
       )}
 
-      <div className="text-xs text-zinc-500 mb-3">
-        Type: {item.type}
-      </div>
+      {/* YOUTUBE PREVIEW */}
+      {item.type === "youtube" && item.url && (
+        <a
+          href={item.url}
+          target="_blank"
+          className="text-red-400 text-xs underline"
+        >
+          ▶ Watch Video
+        </a>
+      )}
 
-      <div className="flex justify-between items-center mt-3">
+      {/* LINK PREVIEW */}
+      {item.type === "link" && item.url && (
+        <a
+          href={item.url}
+          target="_blank"
+          className="text-blue-400 text-xs underline"
+        >
+          Open Link
+        </a>
+      )}
+
+      {/* FOOTER */}
+      <div className="flex justify-between items-center mt-4">
 
         {!collectionId && (
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="text-xs text-purple-400"
+            className="text-xs text-purple-400 hover:text-purple-300"
           >
             + Add to Collection
           </button>
@@ -80,7 +109,7 @@ export default function ItemCard({ item, collectionId }) {
         {collectionId && (
           <button
             onClick={handleRemove}
-            className="text-xs text-red-400"
+            className="text-xs text-red-400 hover:text-red-300"
           >
             Remove
           </button>
@@ -93,16 +122,24 @@ export default function ItemCard({ item, collectionId }) {
 
       {/* DROPDOWN */}
       {showDropdown && (
-        <div className="absolute bottom-12 left-4 bg-zinc-900 border border-zinc-700 rounded-lg w-48 z-10">
-          {collections.map((col) => (
-            <button
-              key={col._id}
-              onClick={() => handleAdd(col._id)}
-              className="block w-full text-left px-3 py-2 hover:bg-zinc-800"
-            >
-              {col.name}
-            </button>
-          ))}
+        <div className="absolute bottom-14 left-4 bg-zinc-900 border border-zinc-700 rounded-lg w-48 z-10 shadow-lg">
+
+          {collections.length === 0 ? (
+            <p className="text-xs text-zinc-400 p-2">
+              No collections
+            </p>
+          ) : (
+            collections.map((col) => (
+              <button
+                key={col._id}
+                onClick={() => handleAdd(col._id)}
+                className="block w-full text-left px-3 py-2 text-sm hover:bg-zinc-800"
+              >
+                {col.name}
+              </button>
+            ))
+          )}
+
         </div>
       )}
     </div>
