@@ -4,17 +4,21 @@ import GraphView from "../components/graph/GraphView";
 export default function Graph() {
   return (
     <Layout>
+      <div className="w-full max-w-[1400px] mx-auto">
 
-      {/* TITLE */}
-      <h1 className="text-2xl font-bold mb-4">
-        Knowledge Graph
-      </h1>
+        <h1 className="text-2xl font-bold mb-2">
+          Knowledge Graph
+        </h1>
 
-      {/* GRAPH CONTAINER */}
-      <div className="w-full h-[75vh] bg-[#121212] border border-[#3a2a22] rounded-2xl overflow-hidden">
-        <GraphView />
+        <p className="text-sm text-gray-400 mb-4">
+          Visualize your knowledge
+        </p>
+
+        <div className="w-full h-[70vh] bg-[#121212] border border-[#3a2a22] rounded-xl overflow-hidden">
+          <GraphView />
+        </div>
+
       </div>
-
     </Layout>
   );
 }

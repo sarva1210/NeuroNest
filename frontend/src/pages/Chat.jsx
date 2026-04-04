@@ -1,44 +1,49 @@
 import { useState, useRef, useEffect } from "react";
-import Layout from "../components/layout/Layout";
 import API from "../services/api";
+import Layout from "../components/layout/Layout";
 
 export default function Chat() {
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const bottomRef = useRef();
+  const bottomRef = useRef(null);
 
+  // auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!message.trim()) return;
 
-    const userMsg = { role: "user", text: input };
+    const userMessage = {
+      role: "user",
+      text: message,
+    };
 
-    const updatedMessages = [...messages, userMsg];
-    setMessages(updatedMessages);
-    setInput("");
+    setMessages((prev) => [...prev, userMessage]);
+    setMessage("");
     setLoading(true);
 
     try {
-      // USE CHAT (NOT ASK)
       const res = await API.post("/search/chat", {
-        message: input,
-        history: updatedMessages,
+        message,
       });
 
-      const aiMsg = {
+      const aiMessage = {
         role: "ai",
-        text: res.data.answer,
-        source: res.data.source,
+        text: res.data.reply,
       };
 
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       console.error(err);
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: "Error talking to AI" },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -46,52 +51,67 @@ export default function Chat() {
 
   return (
     <Layout>
-      <div className="flex flex-col h-[80vh]">
+      <div className="flex flex-col h-[85vh]">
 
-        {/* CHAT */}
+        {/* CHAT AREA */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+          {messages.length === 0 && (
+            <p className="text-gray-500 text-center mt-10">
+              Start a conversation...
+            </p>
+          )}
 
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`max-w-xl p-3 rounded-xl ${
-                msg.role === "user"
-                  ? "bg-purple-600 ml-auto"
-                  : "bg-zinc-800"
+              className={`flex ${
+                msg.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              {msg.text}
-
-              {msg.source && (
-                <div className="text-xs text-gray-400 mt-1">
-                  {msg.source === "web" ? "Web" : "Memory"}
-                </div>
-              )}
+              <div
+                className={`px-4 py-2 rounded-xl max-w-[60%] text-sm ${
+                  msg.role === "user"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-500 text-white"
+                    : "bg-[#1a1a1a] text-gray-300 border border-[#3a2a22]"
+                }`}
+              >
+                {msg.text}
+              </div>
             </div>
           ))}
 
+          {/* TYPING ANIMATION */}
           {loading && (
-            <p className="text-zinc-400">Thinking...</p>
+            <div className="flex justify-start">
+              <div className="px-4 py-2 rounded-xl bg-[#1a1a1a] text-gray-400 border border-[#3a2a22] text-sm animate-pulse">
+                AI is typing...
+              </div>
+            </div>
           )}
 
           <div ref={bottomRef} />
         </div>
 
         {/* INPUT */}
-        <div className="flex gap-2 p-4 border-t border-zinc-800">
+        <div className="flex gap-3 p-4 border-t border-[#2a2a2a]">
+
           <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask your brain..."
-            className="flex-1 bg-zinc-900 p-3 rounded-lg outline-none"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="have a conversation..."
+            className="flex-1 bg-[#1a1a1a] px-4 py-2 rounded-lg outline-none"
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
           />
 
           <button
             onClick={handleSend}
-            className="bg-purple-600 px-4 rounded-lg"
+            disabled={loading}
+            className="bg-gradient-to-r from-purple-600 to-pink-500 px-6 rounded-lg disabled:opacity-50"
           >
             Send
           </button>
+
         </div>
       </div>
     </Layout>

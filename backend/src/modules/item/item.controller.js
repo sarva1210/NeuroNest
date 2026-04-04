@@ -13,13 +13,14 @@ export const createItem = asyncHandler(async (req, res) => {
     url,
     fileUrl,
     userId: req.user.id,
+    status: "processing",
   });
 
-  // queue processing (AI, embedding etc.)
-  await addItemJob(item._id);
+  addItemJob(item._id);
 
   res.json({
     success: true,
+    message: "Saved & processing",
     data: item,
   });
 });
@@ -64,3 +65,4 @@ export const getStats = asyncHandler(async (req, res) => {
 
   res.json(stats);
 });
+

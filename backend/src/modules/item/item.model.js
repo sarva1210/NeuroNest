@@ -12,13 +12,24 @@ const itemSchema = new mongoose.Schema(
       enum: ["text", "link", "youtube", "image", "pdf"]
     },
 
+    // 🔥 ADD THIS (IMPORTANT)
+    title: {
+      type: String,
+      default: ""
+    },
+
     content: String,
     url: String,
     fileUrl: String,
 
     embedding: [Number],
     tags: [String],
-    summary: String,
+
+    //summary editable
+    summary: {
+      type: String,
+      default: ""
+    },
 
     enrichment: [],
 

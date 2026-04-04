@@ -1,33 +1,68 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import Layout from "../components/layout/Layout";
 
 export default function Dashboard() {
   const [items, setItems] = useState([]);
-  const [stats, setStats] = useState({
-    notes: 0,
-    videos: 0,
-    tweets: 0,
-    docs: 0,
-  });
+  const [openItems, setOpenItems] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [editField, setEditField] = useState("");
+  const [editValue, setEditValue] = useState("");
+  const [expanded, setExpanded] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchData();
+    fetchItems();
   }, []);
 
-  const fetchData = async () => {
+  const fetchItems = async () => {
     try {
       const res = await API.get("/items");
-      const data = res.data.data || [];
+      setItems(res.data?.data || []);
+    } catch (err) {
+      console.error(err);
+      setItems([]);
+    }
+  };
 
-      setItems(data);
+  const toggleItem = (id) => {
+    setOpenItems(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
-      setStats({
-        notes: data.filter(i => i.type === "text").length,
-        videos: data.filter(i => i.type === "video").length,
-        tweets: data.filter(i => i.type === "tweet").length,
-        docs: data.filter(i => i.type === "doc").length,
+  const startEdit = (item, field) => {
+    setEditingId(item._id);
+    setEditField(field);
+    setEditValue(item[field] || "");
+  };
+
+  const saveEdit = async (id) => {
+    try {
+      await API.put(`/items/${id}`, {
+        [editField]: editValue
       });
+
+      setItems(prev =>
+        prev.map(i =>
+          i._id === id ? { ...i, [editField]: editValue } : i
+        )
+      );
+
+      setEditingId(null);
+      setEditField("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteItem = async (id) => {
+    try {
+      await API.delete(`/items/${id}`);
+      setItems(prev => prev.filter(i => i._id !== id));
     } catch (err) {
       console.error(err);
     }
@@ -37,75 +72,178 @@ export default function Dashboard() {
     <Layout>
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      {/* STATS */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card title="Notes" value={stats.notes} />
-        <Card title="Videos" value={stats.videos} />
-        <Card title="Tweets" value={stats.tweets} />
-        <Card title="Docs" value={stats.docs} />
-      </div>
+      <div className={`grid ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"} gap-6 items-start`}>
 
-      {/* 🔥 MAIN GRID FIX */}
-      <div className="grid grid-cols-3 gap-6 h-[calc(100vh-220px)]">
+        {/* LEFT - RECENT */}
+        <div className={`${expanded ? "" : "lg:col-span-2"} bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22]`}>
 
-        {/* LEFT (SCROLL ONLY HERE) */}
-        <div className="col-span-2 bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] overflow-y-auto">
-          <h2 className="mb-4 font-semibold">Recent Saves</h2>
-
-          {items.map(item => (
-            <div
-              key={item._id}
-              className="bg-[#121212] p-4 mb-3 rounded-lg border border-[#3a2a22]"
+          <div className="flex justify-between mb-4">
+            <h2 className="font-semibold">Recent Saves</h2>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-purple-400"
             >
-              <h3 className="font-semibold">
-                {item.title || "Untitled"}
-              </h3>
+              {expanded ? "Collapse" : "Expand"}
+            </button>
+          </div>
 
-              <p className="text-sm text-gray-400">
-                {item.content?.slice(0, 80)}
+          <div className={`space-y-3 ${expanded ? "max-h-[70vh]" : "max-h-[400px]"} overflow-y-auto`}>
+
+            {items.length === 0 && (
+              <p className="text-gray-500 text-center mt-6">
+                No items yet
               </p>
+            )}
 
-              <div className="flex justify-between text-xs mt-2 text-gray-500">
-                <span>Type: {item.type}</span>
-                <span>
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </span>
-              </div>
+            {items.map(item => {
+              const isOpen = openItems[item._id];
 
-              <button className="text-xs text-[#AB8D6F] mt-2">
-                + Add to Collection
-              </button>
-            </div>
-          ))}
+              return (
+                <div key={item._id} className="bg-[#121212] p-4 rounded-lg border border-[#3a2a22]">
+
+                  {/* TITLE */}
+                  <div className="flex justify-between items-center">
+
+                    {editingId === item._id && editField === "title" ? (
+                      <input
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => saveEdit(item._id)}
+                        onKeyDown={(e) => e.key === "Enter" && saveEdit(item._id)}
+                        className="bg-transparent border-b border-purple-500 text-sm outline-none w-[60%] max-w-[300px]"
+                        autoFocus
+                      />
+                    ) : (
+                      <h3
+                        onDoubleClick={() => startEdit(item, "title")}
+                        className="font-semibold cursor-pointer"
+                      >
+                        {item.title || generateTitle(item)}
+                      </h3>
+                    )}
+
+                    <span className="text-xs text-gray-500 ml-2">
+                      {timeAgo(item.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* CONTENT */}
+                  <div onClick={() => toggleItem(item._id)}>
+
+                    {!isOpen && (
+                      <p className="text-sm text-gray-400 mt-2">
+                        {(item.summary || "Double click to add summary").slice(0, 80)}...
+                      </p>
+                    )}
+
+                    {isOpen && (
+                      <div className="mt-3 space-y-2">
+
+                        {editingId === item._id && editField === "summary" ? (
+                          <textarea
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={() => saveEdit(item._id)}
+                            className="bg-[#1a1a1a] p-2 rounded w-full text-sm"
+                            autoFocus
+                          />
+                        ) : (
+                          <p
+                            onDoubleClick={() => startEdit(item, "summary")}
+                            className="text-sm text-gray-300 cursor-pointer"
+                          >
+                            {item.summary || "Double click to add summary"}
+                          </p>
+                        )}
+
+                        <p className="text-sm text-gray-400">
+                          {item.content}
+                        </p>
+
+                        <button
+                          onClick={() => deleteItem(item._id)}
+                          className="text-red-400 text-xs"
+                        >
+                          Delete
+                        </button>
+
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* RIGHT (NO SCROLL 🔥) */}
-        <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] sticky top-6 h-fit">
-          <h2 className="mb-4 font-semibold">AI Insights</h2>
+        {/* RIGHT - AI PANEL */}
+        {!expanded && (
+          <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] h-fit sticky top-6">
 
-          <ul className="text-sm text-gray-400 space-y-2">
-            <li>• You saved {items.length} items</li>
-            <li>• Most frequent: {getTopType(items)}</li>
-            <li>• Suggested: AI + Startups</li>
-          </ul>
+            <h2 className="mb-4 font-semibold">AI Insights</h2>
 
-          <button className="mt-4 w-full bg-[#5D3721] py-2 rounded-lg">
-            Ask AI
-          </button>
-        </div>
+            <ul className="text-sm text-gray-400 space-y-2">
+              <li>• You saved {items.length} items</li>
+              <li>• Most frequent: {getTopType(items)}</li>
+              <li>• Suggested: AI + Startups</li>
+            </ul>
+
+            {/* 🔥 WORKING BUTTON */}
+            <button
+              onClick={() => navigate("/chat")}
+              className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-500 py-2 rounded-lg"
+            >
+              Ask AI
+            </button>
+
+          </div>
+        )}
 
       </div>
     </Layout>
   );
 }
 
-function Card({ title, value }) {
-  return (
-    <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22]">
-      <p className="text-gray-400 text-sm">{title}</p>
-      <h2 className="text-2xl font-bold">{value}</h2>
-    </div>
-  );
+/* ---------- HELPERS ---------- */
+
+function generateTitle(item) {
+  if (item.summary && item.summary !== "Auto-generated summary unavailable") {
+    return item.summary.split(".")[0].slice(0, 50);
+  }
+
+  if (item.content) {
+    return item.content.trim().split("\n")[0].slice(0, 50);
+  }
+
+  if (item.url) {
+    try {
+      return new URL(item.url).hostname.replace("www.", "");
+    } catch {
+      return item.url.slice(0, 30);
+    }
+  }
+
+  return "Quick Note";
+}
+
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+
+  const intervals = {
+    day: 86400,
+    hour: 3600,
+    minute: 60,
+  };
+
+  for (let key in intervals) {
+    const value = Math.floor(seconds / intervals[key]);
+    if (value >= 1) {
+      return `${value} ${key}${value > 1 ? "s" : ""} ago`;
+    }
+  }
+
+  return "just now";
 }
 
 function getTopType(items) {

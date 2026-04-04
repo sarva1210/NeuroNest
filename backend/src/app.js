@@ -8,6 +8,7 @@ import searchRoutes from "./modules/search/search.routes.js";
 import chatRoutes from "./modules/chat/chat.routes.js";
 import graphRoutes from "./modules/graph/graph.routes.js";
 import collectionRoutes from "./modules/collection/collection.routes.js";
+import resurfaceRoutes from "./modules/resurface/resurface.routes.js"
 
 import { errorHandler } from "./middleware/error.middleware.js";
 
@@ -30,6 +31,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/graph", graphRoutes);
 app.use("/api/collections", collectionRoutes);
+app.use("/api/resurface", resurfaceRoutes);
 
 app.use(errorHandler);
 

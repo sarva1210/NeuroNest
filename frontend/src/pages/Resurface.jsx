@@ -14,32 +14,47 @@ export default function Resurface() {
       const res = await API.get("/resurface");
       setItems(res.data.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Resurface error:", err);
     }
+  };
+
+  const getTimeLabel = (date) => {
+    const days = (new Date() - new Date(date)) / (1000 * 60 * 60 * 24);
+
+    if (days < 1) return "Today";
+    if (days < 3) return `${Math.floor(days)} days ago`;
+    if (days < 7) return `${Math.floor(days)} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+
+    return `${Math.floor(days / 30)} months ago`;
   };
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-6">
-        Resurfaced Memories
-      </h1>
+      <h1 className="text-2xl mb-6">🧠 Smart Resurface</h1>
 
-      <div className="grid grid-cols-3 gap-4">
-        {items.map(item => (
+      <div className="space-y-4">
+        {items.map((item) => (
           <div
             key={item._id}
-            className="bg-[#121212] p-4 rounded-lg border border-[#3a2a22]"
+            className="bg-[#121212] p-4 rounded-xl border border-[#2a2a2a] hover:border-purple-500 transition"
           >
-            <h3 className="font-semibold">
-              {item.title || "Untitled"}
-            </h3>
+            {/* TITLE */}
+            <h2 className="font-semibold text-lg mb-1">
+              {item.title || item.content?.slice(0, 50) || "Untitled"}
+            </h2>
 
-            <p className="text-sm text-gray-400">
-              {item.content?.slice(0, 100)}
+            {/* SUMMARY */}
+            <p className="text-sm text-gray-400 mb-2">
+              {item.summary?.slice(0, 120) ||
+                item.content?.slice(0, 120) ||
+                "No preview available"}
             </p>
 
-            <div className="text-xs text-gray-500 mt-2">
-              {new Date(item.createdAt).toLocaleDateString()}
+            {/* META */}
+            <div className="text-xs text-gray-500 flex justify-between">
+              <span>{item.type}</span>
+              <span>{getTimeLabel(item.createdAt)}</span>
             </div>
           </div>
         ))}

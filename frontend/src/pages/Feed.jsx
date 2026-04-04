@@ -1,38 +1,39 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import API from "../services/api";
 import Layout from "../components/layout/Layout";
-import ItemCard from "../components/item/ItemCard";
-import { askAI } from "../services/search.service";
 
 export default function Feed() {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
   const [answer, setAnswer] = useState("");
-  const [source, setSource] = useState("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const delay = setTimeout(() => {
-      if (query.trim()) {
-        handleAsk();
-      }
-    }, 500);
+    fetchItems();
+  }, []);
 
-    return () => clearTimeout(delay);
-  }, [query]);
+  const fetchItems = async () => {
+    try {
+      const res = await API.get("/items");
+      setItems(res.data?.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleAsk = async () => {
+    if (!query.trim()) return;
+
     try {
-      setLoading(true);
+      const res = await API.post("/search/ask", { query });
 
-      const data = await askAI(query);
+      setAnswer(res.data.answer);
 
-      setAnswer(data.answer);
-      setItems(data.items || []);
-      setSource(data.source);
+      // 🔥 refresh feed after auto-save
+      fetchItems();
+
+      setQuery("");
     } catch (err) {
-      console.error("AI error", err);
-    } finally {
-      setLoading(false);
+      console.error(err);
     }
   };
 
@@ -40,40 +41,44 @@ export default function Feed() {
     <Layout>
       <h1 className="text-2xl font-bold mb-6">Ask Your Brain</h1>
 
-      {/* Input */}
+      {/* INPUT */}
       <input
-        type="text"
-        placeholder="Ask anything..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-6"
+        placeholder="Ask anything..."
+        className="w-full bg-[#1a1a1a] p-3 rounded-lg mb-4 outline-none"
+        onKeyDown={(e) => e.key === "Enter" && handleAsk()}
       />
 
-      {/* AI Answer */}
+      {/* ANSWER */}
       {answer && (
-        <div className="bg-purple-900/20 border border-purple-700 p-4 rounded-xl mb-6">
-          <h2 className="font-semibold mb-2 text-purple-300">AI Answer</h2>
-          <p className="text-zinc-300">{answer}</p>
+        <div className="bg-purple-900/20 border border-purple-500 p-4 rounded-lg mb-6">
+          <h2 className="font-semibold mb-2">AI Answer</h2>
+          <p className="text-sm text-gray-300">{answer}</p>
+        </div>
+      )}
 
-          {source && (
-            <p className="text-xs text-zinc-500 mt-2">
-              Source:{" "}
-              {source === "web" ? "🌐 Web (Tavily)" : "🧠 Your Memory"}
+      {/* RECENT */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        {items.map((item) => (
+          <div
+            key={item._id}
+            className="bg-[#1a1a1a] p-4 rounded-lg border border-[#3a2a22]"
+          >
+            <p className="text-xs text-purple-400 mb-1">{item.type}</p>
+
+            <h3 className="font-semibold text-sm mb-1">
+              {item.summary?.slice(0, 60) || "Untitled"}
+            </h3>
+
+            <p className="text-xs text-gray-400">
+              {item.content?.slice(0, 80)}
             </p>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
 
-      {/* Results */}
-      {loading ? (
-        <p className="text-zinc-400">Thinking...</p>
-      ) : (
-        <div className="grid grid-cols-3 gap-4">
-          {items.map((item) => (
-            <ItemCard key={item._id} item={item} />
-          ))}
-        </div>
-      )}
+      </div>
     </Layout>
   );
 }
