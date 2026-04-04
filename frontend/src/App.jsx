@@ -5,6 +5,7 @@ import Chat from "./pages/Chat";
 import Graph from "./pages/Graph";
 import Collections from "./pages/Collections";
 import Auth from "./pages/Auth";
+import Resurface from "./pages/Resurface";
 
 export default function App() {
   const isLoggedIn = !!localStorage.getItem("token");
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/chat" element={<Chat />} />
             <Route path="/graph" element={<Graph />} />
             <Route path="/collections" element={<Collections />} />
+            <Route path="/resurface" element={<Resurface />} />
           </>
         ) : (
           <Route path="*" element={<Navigate to="/auth" />} />
