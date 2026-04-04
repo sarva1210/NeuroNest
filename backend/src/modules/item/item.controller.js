@@ -1,9 +1,9 @@
-import { createItemService, getUserItems } from "./item.service.js";
+import { createItemService } from "./item.service.js";
 import { addItemJob } from "../../queues/item.queue.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import Item from "./item.model.js";
 
-
+// CREATE ITEM
 export const createItem = asyncHandler(async (req, res) => {
   const { type, content, url, fileUrl } = req.body;
 
@@ -12,9 +12,10 @@ export const createItem = asyncHandler(async (req, res) => {
     content,
     url,
     fileUrl,
-    userId: req.user.id
+    userId: req.user.id,
   });
 
+  // queue processing (AI, embedding etc.)
   await addItemJob(item._id);
 
   res.json({
@@ -23,6 +24,7 @@ export const createItem = asyncHandler(async (req, res) => {
   });
 });
 
+// GET ALL ITEMS (USER)
 export const getItems = asyncHandler(async (req, res) => {
   const items = await Item.find({ userId: req.user.id })
     .sort({ createdAt: -1 });
@@ -33,6 +35,7 @@ export const getItems = asyncHandler(async (req, res) => {
   });
 });
 
+// 👁 OPEN ITEM (TRACK USAGE)
 export const openItem = asyncHandler(async (req, res) => {
   const { itemId } = req.params;
 
@@ -48,17 +51,16 @@ export const openItem = asyncHandler(async (req, res) => {
   });
 });
 
-export const getStats = async (req, res, next) => {
-  try {
-    const stats = {
-      notes: await Item.countDocuments({ type: "note" }),
-      videos: await Item.countDocuments({ type: "youtube" }),
-      tweets: await Item.countDocuments({ type: "tweet" }),
-      docs: await Item.countDocuments({ type: "doc" }),
-    };
+// STATS
+export const getStats = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
 
-    res.json(stats);
-  } catch (err) {
-    next(err);
-  }
-};
+  const stats = {
+    notes: await Item.countDocuments({ userId, type: "text" }),
+    videos: await Item.countDocuments({ userId, type: "youtube" }),
+    tweets: await Item.countDocuments({ userId, type: "tweet" }),
+    docs: await Item.countDocuments({ userId, type: "pdf" }),
+  };
+
+  res.json(stats);
+});

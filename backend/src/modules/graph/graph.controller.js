@@ -2,35 +2,41 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import Item from "../item/item.model.js";
 import Connection from "./graph.model.js";
 
+// GET GRAPH
 export const getGraph = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   const items = await Item.find({ userId });
   const connections = await Connection.find({ userId });
 
-  // CLEAN NODES
+  // SAFE NODES
   const nodes = items.map((item) => ({
     id: item._id.toString(),
 
-    // better label
+    // BETTER LABEL (handles all types)
     label:
       item.title ||
-      (item.content ? item.content.slice(0, 25) : "Untitled"),
+      item.content?.slice(0, 25) ||
+      item.url?.slice(0, 30) ||
+      "Untitled",
 
-    // optional UI improvements
     type: item.type || "text",
     tags: item.tags || [],
 
-    // graph styling support
     size: 10,
   }));
 
-  // CLEAN EDGES
-  const links = connections.map((conn) => ({
-    source: conn.from.toString(),
-    target: conn.to.toString(),
-    weight: conn.score || 1,
-  }));
+  // SAFE LINKS
+  const links = connections
+    .filter(
+      (conn) =>
+        conn.from && conn.to // prevent null crash
+    )
+    .map((conn) => ({
+      source: conn.from.toString(),
+      target: conn.to.toString(),
+      weight: conn.score || 1,
+    }));
 
   res.json({
     success: true,
@@ -42,7 +48,7 @@ export const getGraph = asyncHandler(async (req, res) => {
 });
 
 
-// RELATED ITEMS
+// RELATED ITEMS (FIXED + SAFE)
 export const getRelatedItems = asyncHandler(async (req, res) => {
   const { itemId } = req.params;
   const userId = req.user.id;
