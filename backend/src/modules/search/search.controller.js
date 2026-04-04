@@ -2,6 +2,7 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { semanticSearchService } from "./search.service.js";
 import { generateAnswer } from "../../services/ai/summary.service.js";
 import { searchWeb } from "../../services/ai/tavily.service.js";
+import Item from "../item/item.model.js";
 
 // SEMANTIC SEARCH
 export const semanticSearch = asyncHandler(async (req, res) => {
@@ -20,8 +21,7 @@ export const semanticSearch = asyncHandler(async (req, res) => {
   });
 });
 
-
-// ASK AI (RAG + CLEAN CONTEXT)
+// ASK AI
 export const askAI = asyncHandler(async (req, res) => {
   const { query } = req.body;
 
@@ -29,13 +29,15 @@ export const askAI = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Query required" });
   }
 
-  let results = await semanticSearchService(query, req.user.id);
+  const userId = req.user.id;
+
+  let results = await semanticSearchService(query, userId);
 
   let context = "";
   let source = "database";
 
-  // if no DB results -> web fallback
   if (!results || results.length === 0) {
+    // fallback to web or general AI
     const web = await searchWeb(query);
 
     context = web
@@ -45,14 +47,23 @@ export const askAI = asyncHandler(async (req, res) => {
     source = "web";
   } else {
     context = results
-      .map(
-        (i, idx) =>
-          `Memory ${idx + 1}:\n${i.content || ""}\nSummary: ${i.summary || ""}`
-      )
+      .map(i => `${i.content || ""} ${i.summary || ""}`)
       .join("\n\n");
   }
 
   const answer = await generateAnswer(query, context);
+
+  // AUTO SAVE IF NOT FOUND
+  if (!results || results.length === 0) {
+    await Item.create({
+      userId,
+      type: "text",
+      content: query,
+      summary: answer,
+      tags: ["ai-generated"],
+      status: "done",
+    });
+  }
 
   res.json({
     answer,
@@ -61,62 +72,44 @@ export const askAI = asyncHandler(async (req, res) => {
   });
 });
 
+// CHAT WITH MEMORY
+export const chatWithMemory = asyncHandler(async (req, res) => {
+  const { message } = req.body;
 
-// CHAT AI (MEMORY + CONTEXT)
-export const chatAI = asyncHandler(async (req, res) => {
-  const { message, history = [] } = req.body;
-
-  if (!message || message.trim() === "") {
+  if (!message) {
     return res.status(400).json({ message: "Message required" });
   }
 
-  let results = await semanticSearchService(message, req.user.id);
+  const userId = req.user.id;
 
-  let context = "";
-  let source = "database";
+  const items = await Item.find({ userId })
+    .sort({ createdAt: -1 })
+    .limit(5);
 
-  if (!results || results.length === 0) {
-    const web = await searchWeb(message);
-
-    context = web
-      .map(r => `${r.title}\n${r.content}`)
-      .join("\n\n");
-
-    source = "web";
-  } else {
-    context = results
-      .map(
-        (i, idx) =>
-          `Memory ${idx + 1}:\n${i.content || ""}\nSummary: ${i.summary || ""}`
-      )
-      .join("\n\n");
-  }
-
-  // CONVERSATION MEMORY
-  const historyText = history
-    .map(msg => `${msg.role}: ${msg.text}`)
+  const context = items
+    .map(i => `${i.content || ""} ${i.summary || ""}`)
     .join("\n");
 
+  // PROMPT
   const prompt = `
-Conversation so far:
-${historyText}
+You are a friendly AI assistant.
 
-User: ${message}
+IMPORTANT RULES:
+- If user is just chatting → respond normally like a human.
+- Do NOT say "not enough data".
+- Use memory ONLY if relevant.
+- Keep answers natural and conversational.
 
-Relevant Context:
+Context (optional):
 ${context}
 
-Instructions:
-- Answer naturally
-- Use context if helpful
-- If not enough data, say so
+User:
+${message}
+
+Answer:
 `;
 
-  const answer = await generateAnswer(prompt, "");
+  const answer = await generateAnswer(message, prompt);
 
-  res.json({
-    answer,
-    items: results,
-    source,
-  });
+  res.json({ reply: answer });
 });

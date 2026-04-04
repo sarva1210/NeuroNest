@@ -1,9 +1,9 @@
 import express from "express";
-import { getResurface } from "./resurface.controller.js";
+import { getResurfaceItems  } from "./resurface.controller.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.get("/", authMiddleware, getResurface);
+router.get("/", authMiddleware, getResurfaceItems );
 
 export default router;
