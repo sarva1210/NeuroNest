@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Newspaper, MessageSquare, Share2, Layers } from "lucide-react";
+import { LayoutDashboard, Newspaper, MessageSquare, Share2, Layers, Clock } from "lucide-react";
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const location = useLocation();
@@ -10,6 +10,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     { path: "/chat", label: "Chat", icon: MessageSquare },
     { path: "/graph", label: "Graph", icon: Share2 },
     { path: "/collections", label: "Collections", icon: Layers },
+    { path: "/resurface", label: "Resurface", icon: Clock },
   ];
 
   return (
@@ -20,7 +21,6 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     >
       {/* TOP */}
       <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-        
         {!collapsed && (
           <h1 className="text-lg font-semibold tracking-wide">
             NeuroNest

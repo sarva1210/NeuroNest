@@ -11,25 +11,29 @@ export default function Chat() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, loading]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMsg = { role: "user", text: input };
 
-    setMessages(prev => [...prev, userMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput("");
     setLoading(true);
 
     try {
-      const res = await API.post("/search/ask", {
-        query: input,
+      // USE CHAT (NOT ASK)
+      const res = await API.post("/search/chat", {
+        message: input,
+        history: updatedMessages,
       });
 
       const aiMsg = {
         role: "ai",
         text: res.data.answer,
+        source: res.data.source,
       };
 
       setMessages(prev => [...prev, aiMsg]);
@@ -44,7 +48,7 @@ export default function Chat() {
     <Layout>
       <div className="flex flex-col h-[80vh]">
 
-        {/* CHAT AREA */}
+        {/* CHAT */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
           {messages.map((msg, i) => (
@@ -57,10 +61,18 @@ export default function Chat() {
               }`}
             >
               {msg.text}
+
+              {msg.source && (
+                <div className="text-xs text-gray-400 mt-1">
+                  {msg.source === "web" ? "Web" : "Memory"}
+                </div>
+              )}
             </div>
           ))}
 
-          {loading && <p className="text-zinc-400">Thinking...</p>}
+          {loading && (
+            <p className="text-zinc-400">Thinking...</p>
+          )}
 
           <div ref={bottomRef} />
         </div>
@@ -70,8 +82,8 @@ export default function Chat() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask anything..."
-            className="flex-1 bg-zinc-900 p-3 rounded-lg"
+            placeholder="Ask your brain..."
+            className="flex-1 bg-zinc-900 p-3 rounded-lg outline-none"
           />
 
           <button
