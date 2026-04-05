@@ -20,9 +20,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // CORS CONFIG
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://neuronnest-2.onrender.com",
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+      // allow requests with no origin (Postman, curl, mobile apps)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
     credentials: true,
   })
 );
