@@ -34,10 +34,11 @@ export default function Dashboard() {
     }));
   };
 
+  // ✅ FIXED EDIT (NO ERROR)
   const startEdit = (item, field) => {
     setEditingId(item._id);
     setEditField(field);
-    setEditValue(item[field] || "");
+    setEditValue(item[field] || ""); // 🔥 FIX
   };
 
   const saveEdit = async (id) => {
@@ -54,12 +55,15 @@ export default function Dashboard() {
 
       setEditingId(null);
       setEditField("");
+      setEditValue("");
     } catch (err) {
       console.error(err);
     }
   };
 
   const deleteItem = async (id) => {
+    if (!window.confirm("Delete this item?")) return;
+
     try {
       await API.delete(`/items/${id}`);
       setItems(prev => prev.filter(i => i._id !== id));
@@ -70,15 +74,21 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      <div className={`grid ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"} gap-6 items-start`}>
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        {/* ❌ ADD BUTTON REMOVED */}
+      </div>
 
-        {/* LEFT - RECENT */}
+      <div className={`grid ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"} gap-6`}>
+
+        {/* LEFT */}
         <div className={`${expanded ? "" : "lg:col-span-2"} bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22]`}>
 
           <div className="flex justify-between mb-4">
             <h2 className="font-semibold">Recent Saves</h2>
+
             <button
               onClick={() => setExpanded(!expanded)}
               className="text-xs text-purple-400"
@@ -89,28 +99,22 @@ export default function Dashboard() {
 
           <div className={`space-y-3 ${expanded ? "max-h-[70vh]" : "max-h-[400px]"} overflow-y-auto`}>
 
-            {items.length === 0 && (
-              <p className="text-gray-500 text-center mt-6">
-                No items yet
-              </p>
-            )}
-
             {items.map(item => {
               const isOpen = openItems[item._id];
 
               return (
-                <div key={item._id} className="bg-[#121212] p-4 rounded-lg border border-[#3a2a22]">
+                <div key={item._id} className="bg-[#121212] p-4 rounded-lg border border-[#3a2a22] hover:border-purple-500 transition">
 
-                  {/* TITLE */}
+                  {/* HEADER */}
                   <div className="flex justify-between items-center">
 
                     {editingId === item._id && editField === "title" ? (
                       <input
-                        value={editValue}
+                        value={editValue || ""}   // 🔥 FIX
                         onChange={(e) => setEditValue(e.target.value)}
                         onBlur={() => saveEdit(item._id)}
                         onKeyDown={(e) => e.key === "Enter" && saveEdit(item._id)}
-                        className="bg-transparent border-b border-purple-500 text-sm outline-none w-[60%] max-w-[300px]"
+                        className="bg-transparent border-b border-purple-500 text-sm outline-none"
                         autoFocus
                       />
                     ) : (
@@ -118,21 +122,30 @@ export default function Dashboard() {
                         onDoubleClick={() => startEdit(item, "title")}
                         className="font-semibold cursor-pointer"
                       >
-                        {item.title || generateTitle(item)}
+                        {generateSmartTitle(item)}
                       </h3>
                     )}
 
-                    <span className="text-xs text-gray-500 ml-2">
-                      {timeAgo(item.createdAt)}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">
+                        {timeAgo(item.createdAt)}
+                      </span>
+
+                      <button
+                        onClick={() => deleteItem(item._id)}
+                        className="text-red-400 text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
-                  {/* CONTENT */}
+                  {/* BODY */}
                   <div onClick={() => toggleItem(item._id)}>
 
                     {!isOpen && (
                       <p className="text-sm text-gray-400 mt-2">
-                        {(item.summary || "Double click to add summary").slice(0, 80)}...
+                        {generateSmartSummary(item)}...
                       </p>
                     )}
 
@@ -141,11 +154,10 @@ export default function Dashboard() {
 
                         {editingId === item._id && editField === "summary" ? (
                           <textarea
-                            value={editValue}
+                            value={editValue || ""}   // 🔥 FIX
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={() => saveEdit(item._id)}
-                            className="bg-[#1a1a1a] p-2 rounded w-full text-sm"
-                            autoFocus
+                            className="bg-[#1a1a1a] p-2 rounded w-full"
                           />
                         ) : (
                           <p
@@ -160,24 +172,19 @@ export default function Dashboard() {
                           {item.content}
                         </p>
 
-                        <button
-                          onClick={() => deleteItem(item._id)}
-                          className="text-red-400 text-xs"
-                        >
-                          Delete
-                        </button>
-
                       </div>
                     )}
+
                   </div>
 
                 </div>
               );
             })}
+
           </div>
         </div>
 
-        {/* RIGHT - AI PANEL */}
+        {/* RIGHT PANEL */}
         {!expanded && (
           <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] h-fit sticky top-6">
 
@@ -189,7 +196,6 @@ export default function Dashboard() {
               <li>• Suggested: AI + Startups</li>
             </ul>
 
-            {/* 🔥 WORKING BUTTON */}
             <button
               onClick={() => navigate("/chat")}
               className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-500 py-2 rounded-lg"
@@ -201,40 +207,37 @@ export default function Dashboard() {
         )}
 
       </div>
+
     </Layout>
   );
 }
 
-/* ---------- HELPERS ---------- */
+/* HELPERS */
 
-function generateTitle(item) {
-  if (item.summary && item.summary !== "Auto-generated summary unavailable") {
-    return item.summary.split(".")[0].slice(0, 50);
-  }
+function generateSmartTitle(item) {
+  if (item.title && !item.title.toLowerCase().includes("not enough"))
+    return item.title;
 
-  if (item.content) {
-    return item.content.trim().split("\n")[0].slice(0, 50);
-  }
+  if (item.summary && !item.summary.toLowerCase().includes("not enough"))
+    return item.summary.slice(0, 50);
 
-  if (item.url) {
-    try {
-      return new URL(item.url).hostname.replace("www.", "");
-    } catch {
-      return item.url.slice(0, 30);
-    }
-  }
+  if (item.content) return item.content.slice(0, 50);
 
   return "Quick Note";
 }
 
+function generateSmartSummary(item) {
+  if (item.summary && !item.summary.toLowerCase().includes("not enough"))
+    return item.summary.slice(0, 80);
+
+  if (item.content) return item.content.slice(0, 80);
+
+  return "Click to expand";
+}
+
 function timeAgo(date) {
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-
-  const intervals = {
-    day: 86400,
-    hour: 3600,
-    minute: 60,
-  };
+  const intervals = { day: 86400, hour: 3600, minute: 60 };
 
   for (let key in intervals) {
     const value = Math.floor(seconds / intervals[key]);
@@ -242,7 +245,6 @@ function timeAgo(date) {
       return `${value} ${key}${value > 1 ? "s" : ""} ago`;
     }
   }
-
   return "just now";
 }
 

@@ -1,118 +1,113 @@
-import { useState, useRef, useEffect } from "react";
-import API from "../services/api";
+import { useEffect, useRef, useState } from "react";
 import Layout from "../components/layout/Layout";
+import API from "../services/api";
 
 export default function Chat() {
-  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [input, setInput] = useState("");
+  const bottomRef = useRef();
 
-  const bottomRef = useRef(null);
+  useEffect(() => {
+    setMessages([
+      {
+        role: "ai",
+        text: "Hey! I’m your second brain \nI can use your memory + internet"
+      }
+    ]);
+  }, []);
 
-  // auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages]);
 
-  const handleSend = async () => {
-    if (!message.trim()) return;
+  const sendMessage = async () => {
+    if (!input.trim()) return;
 
-    const userMessage = {
-      role: "user",
-      text: message,
-    };
+    const userMsg = input;
 
-    setMessages((prev) => [...prev, userMessage]);
-    setMessage("");
-    setLoading(true);
+    setMessages(prev => [
+      ...prev,
+      { role: "user", text: userMsg }
+    ]);
+
+    setInput("");
 
     try {
-      const res = await API.post("/search/chat", {
-        message,
+      const res = await API.post("/chat", {
+        message: userMsg
       });
 
-      const aiMessage = {
-        role: "ai",
-        text: res.data.reply,
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (err) {
-      console.error(err);
-
-      setMessages((prev) => [
+      setMessages(prev => [
         ...prev,
-        { role: "ai", text: "Error talking to AI" },
+        {
+          role: "ai",
+          text: res.data.reply,
+          source: res.data.source
+        }
       ]);
-    } finally {
-      setLoading(false);
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { role: "ai", text: "Something went wrong" }
+      ]);
     }
   };
 
   return (
     <Layout>
-      <div className="flex flex-col h-[85vh]">
+      <div className="h-[80vh] flex flex-col">
 
-        {/* CHAT AREA */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-
-          {messages.length === 0 && (
-            <p className="text-gray-500 text-center mt-10">
-              Start a conversation...
-            </p>
-          )}
-
+        {/* CHAT */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {messages.map((msg, i) => (
             <div
               key={i}
               className={`flex ${
-                msg.role === "user" ? "justify-end" : "justify-start"
+                msg.role === "user"
+                  ? "justify-end"
+                  : "justify-start"
               }`}
             >
-              <div
-                className={`px-4 py-2 rounded-xl max-w-[60%] text-sm ${
-                  msg.role === "user"
-                    ? "bg-gradient-to-r from-purple-600 to-pink-500 text-white"
-                    : "bg-[#1a1a1a] text-gray-300 border border-[#3a2a22]"
-                }`}
-              >
-                {msg.text}
+              <div className="max-w-[60%]">
+                <div
+                  className={`px-4 py-2 rounded-xl ${
+                    msg.role === "user"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                      : "bg-[#1a1a1a]"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+
+                {/* SOURCE TAG */}
+                {msg.source && (
+                  <div className="text-xs text-gray-500 mt-1 ml-1">
+                    Source: {msg.source}
+                  </div>
+                )}
               </div>
             </div>
           ))}
-
-          {/* TYPING ANIMATION */}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="px-4 py-2 rounded-xl bg-[#1a1a1a] text-gray-400 border border-[#3a2a22] text-sm animate-pulse">
-                AI is typing...
-              </div>
-            </div>
-          )}
-
           <div ref={bottomRef} />
         </div>
 
         {/* INPUT */}
-        <div className="flex gap-3 p-4 border-t border-[#2a2a2a]">
-
+        <div className="flex gap-2 mt-4">
           <input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="have a conversation..."
-            className="flex-1 bg-[#1a1a1a] px-4 py-2 rounded-lg outline-none"
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask anything..."
+            className="flex-1 bg-[#121212] px-4 py-3 rounded-xl outline-none"
           />
 
           <button
-            onClick={handleSend}
-            disabled={loading}
-            className="bg-gradient-to-r from-purple-600 to-pink-500 px-6 rounded-lg disabled:opacity-50"
+            onClick={sendMessage}
+            className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500"
           >
             Send
           </button>
-
         </div>
+
       </div>
     </Layout>
   );
