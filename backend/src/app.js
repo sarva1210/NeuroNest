@@ -24,6 +24,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://neuronest-3.onrender.com",
+  "https://neuronest-frontend.onrender.com",
 ];
 
 app.use(
