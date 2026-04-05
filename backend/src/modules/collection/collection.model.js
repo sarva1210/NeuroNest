@@ -5,7 +5,6 @@ const collectionSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -21,5 +20,8 @@ const collectionSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// prevent duplicate per user
+collectionSchema.index({ name: 1, userId: 1 }, { unique: true });
 
 export default mongoose.model("Collection", collectionSchema);

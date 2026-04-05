@@ -1,262 +1,332 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import API from "../services/api";
-import Layout from "../components/layout/Layout";
+  import { useEffect, useState } from "react";
+  import { useNavigate } from "react-router-dom";
+  import API from "../services/api";
+  import Layout from "../components/layout/Layout";
 
-export default function Dashboard() {
-  const [items, setItems] = useState([]);
-  const [openItems, setOpenItems] = useState({});
-  const [editingId, setEditingId] = useState(null);
-  const [editField, setEditField] = useState("");
-  const [editValue, setEditValue] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  export default function Dashboard() {
+    const [items, setItems] = useState([]);
+    const [openItems, setOpenItems] = useState({});
+    const [editingId, setEditingId] = useState(null);
+    const [editField, setEditField] = useState("");
+    const [editValue, setEditValue] = useState("");
+    const [expanded, setExpanded] = useState(false);
 
-  const navigate = useNavigate();
+    const [previewItem, setPreviewItem] = useState(null); // 🔥 NEW
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
+    const navigate = useNavigate();
 
-  const fetchItems = async () => {
-    try {
-      const res = await API.get("/items");
-      setItems(res.data?.data || []);
-    } catch (err) {
-      console.error(err);
-      setItems([]);
-    }
-  };
+    useEffect(() => {
+      fetchItems();
+    }, []);
 
-  const toggleItem = (id) => {
-    setOpenItems(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
+    const fetchItems = async () => {
+      try {
+        const res = await API.get("/items");
+        setItems(res.data?.data || []);
+      } catch (err) {
+        console.error(err);
+        setItems([]);
+      }
+    };
 
-  // ✅ FIXED EDIT (NO ERROR)
-  const startEdit = (item, field) => {
-    setEditingId(item._id);
-    setEditField(field);
-    setEditValue(item[field] || ""); // 🔥 FIX
-  };
+    const toggleItem = (id) => {
+      setOpenItems(prev => ({
+        ...prev,
+        [id]: !prev[id]
+      }));
+    };
 
-  const saveEdit = async (id) => {
-    try {
-      await API.put(`/items/${id}`, {
-        [editField]: editValue
-      });
+    const startEdit = (item, field) => {
+      setEditingId(item._id);
+      setEditField(field);
+      setEditValue(item[field] || "");
+    };
 
-      setItems(prev =>
-        prev.map(i =>
-          i._id === id ? { ...i, [editField]: editValue } : i
-        )
-      );
+    const saveEdit = async (id) => {
+      try {
+        await API.put(`/items/${id}`, {
+          [editField]: editValue
+        });
 
-      setEditingId(null);
-      setEditField("");
-      setEditValue("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
+        setItems(prev =>
+          prev.map(i =>
+            i._id === id ? { ...i, [editField]: editValue } : i
+          )
+        );
 
-  const deleteItem = async (id) => {
-    if (!window.confirm("Delete this item?")) return;
+        setEditingId(null);
+        setEditField("");
+        setEditValue("");
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-    try {
-      await API.delete(`/items/${id}`);
-      setItems(prev => prev.filter(i => i._id !== id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    const deleteItem = async (id) => {
+      if (!window.confirm("Delete this item?")) return;
 
-  return (
-    <Layout>
+      try {
+        await API.delete(`/items/${id}`);
+        setItems(prev => prev.filter(i => i._id !== id));
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        {/* ❌ ADD BUTTON REMOVED */}
-      </div>
+    const getYouTubeId = (url) => {
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes("youtu.be")) {
+          return urlObj.pathname.slice(1);
+        }
+        return urlObj.searchParams.get("v");
+      } catch {
+        return null;
+      }
+    };
 
-      <div className={`grid ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"} gap-6`}>
+    return (
+      <Layout>
 
-        {/* LEFT */}
-        <div className={`${expanded ? "" : "lg:col-span-2"} bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22]`}>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+        </div>
 
-          <div className="flex justify-between mb-4">
-            <h2 className="font-semibold">Recent Saves</h2>
+        <div className={`grid ${expanded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"} gap-6`}>
 
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-xs text-purple-400"
-            >
-              {expanded ? "Collapse" : "Expand"}
-            </button>
-          </div>
+          {/* LEFT */}
+          <div className={`${expanded ? "" : "lg:col-span-2"} bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22]`}>
 
-          <div className={`space-y-3 ${expanded ? "max-h-[70vh]" : "max-h-[400px]"} overflow-y-auto`}>
+            <div className="flex justify-between mb-4">
+              <h2 className="font-semibold">Recent Saves</h2>
 
-            {items.map(item => {
-              const isOpen = openItems[item._id];
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="text-xs text-purple-400"
+              >
+                {expanded ? "Collapse" : "Expand"}
+              </button>
+            </div>
 
-              return (
-                <div key={item._id} className="bg-[#121212] p-4 rounded-lg border border-[#3a2a22] hover:border-purple-500 transition">
+            <div className={`space-y-3 ${expanded ? "max-h-[70vh]" : "max-h-[400px]"} overflow-y-auto`}>
 
-                  {/* HEADER */}
-                  <div className="flex justify-between items-center">
+              {items.map(item => {
+                const isOpen = openItems[item._id];
+                const file = item.fileUrl || item.url;
 
-                    {editingId === item._id && editField === "title" ? (
-                      <input
-                        value={editValue || ""}   // 🔥 FIX
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={() => saveEdit(item._id)}
-                        onKeyDown={(e) => e.key === "Enter" && saveEdit(item._id)}
-                        className="bg-transparent border-b border-purple-500 text-sm outline-none"
-                        autoFocus
-                      />
-                    ) : (
+                return (
+                  <div key={item._id} className="bg-[#121212] p-4 rounded-lg border border-[#3a2a22] hover:border-purple-500 transition">
+
+                    {/* HEADER */}
+                    <div className="flex justify-between items-center">
+
                       <h3
                         onDoubleClick={() => startEdit(item, "title")}
                         className="font-semibold cursor-pointer"
                       >
                         {generateSmartTitle(item)}
                       </h3>
-                    )}
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500">
-                        {timeAgo(item.createdAt)}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500">
+                          {timeAgo(item.createdAt)}
+                        </span>
 
-                      <button
-                        onClick={() => deleteItem(item._id)}
-                        className="text-red-400 text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* BODY */}
-                  <div onClick={() => toggleItem(item._id)}>
-
-                    {!isOpen && (
-                      <p className="text-sm text-gray-400 mt-2">
-                        {generateSmartSummary(item)}...
-                      </p>
-                    )}
-
-                    {isOpen && (
-                      <div className="mt-3 space-y-2">
-
-                        {editingId === item._id && editField === "summary" ? (
-                          <textarea
-                            value={editValue || ""}   // 🔥 FIX
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={() => saveEdit(item._id)}
-                            className="bg-[#1a1a1a] p-2 rounded w-full"
-                          />
-                        ) : (
-                          <p
-                            onDoubleClick={() => startEdit(item, "summary")}
-                            className="text-sm text-gray-300 cursor-pointer"
-                          >
-                            {item.summary || "Double click to add summary"}
-                          </p>
-                        )}
-
-                        <p className="text-sm text-gray-400">
-                          {item.content}
-                        </p>
-
+                        <button
+                          onClick={() => deleteItem(item._id)}
+                          className="text-red-400 text-xs"
+                        >
+                          ✕
+                        </button>
                       </div>
-                    )}
+                    </div>
+
+                    {/* BODY */}
+                    <div onClick={() => toggleItem(item._id)}>
+
+                      {!isOpen && (
+                        <p className="text-sm text-gray-400 mt-2">
+                          {generateSmartSummary(item)}...
+                        </p>
+                      )}
+
+                      {isOpen && (
+                        <div className="mt-3 space-y-3">
+
+                          {/* 🎥 YOUTUBE */}
+                          {file && file.includes("youtube") && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewItem({ type: "youtube", src: file });
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <iframe
+                                width="100%"
+                                height="180"
+                                src={`https://www.youtube.com/embed/${getYouTubeId(file)}`}
+                                className="rounded-lg pointer-events-none"
+                                title="YouTube"
+                              />
+                            </div>
+                          )}
+
+                          {/* 🖼 IMAGE */}
+                          {file && file.match(/\.(jpeg|jpg|png|gif|webp)$/) && (
+                            <img
+                              src={file}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewItem({ type: "image", src: file });
+                              }}
+                              className="w-full h-40 object-cover rounded-lg cursor-pointer"
+                            />
+                          )}
+
+                          {/* 📄 PDF */}
+                          {file && file.endsWith(".pdf") && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewItem({ type: "pdf", src: file });
+                              }}
+                              className="text-blue-400 underline cursor-pointer"
+                            >
+                              📄 Open PDF
+                            </div>
+                          )}
+
+                          {/* SUMMARY */}
+                          <p className="text-sm text-gray-300">
+                            {item.summary || "Click to see full"}
+                          </p>
+
+                          {/* TEXT */}
+                          {item.content && (
+                            <p className="text-sm text-gray-400">
+                              {item.content}
+                            </p>
+                          )}
+
+                        </div>
+                      )}
+
+                    </div>
 
                   </div>
+                );
+              })}
 
-                </div>
-              );
-            })}
-
+            </div>
           </div>
+
+          {/* RIGHT */}
+          {!expanded && (
+            <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] h-fit sticky top-6">
+
+              <h2 className="mb-4 font-semibold">AI Insights</h2>
+
+              <ul className="text-sm text-gray-400 space-y-2">
+                <li>• You saved {items.length} items</li>
+                <li>• Most frequent: {getTopType(items)}</li>
+                <li>• Suggested: AI + Startups</li>
+              </ul>
+
+              <button
+                onClick={() => navigate("/chat")}
+                className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-500 py-2 rounded-lg"
+              >
+                Ask AI
+              </button>
+
+            </div>
+          )}
+
         </div>
 
-        {/* RIGHT PANEL */}
-        {!expanded && (
-          <div className="bg-[#1a1a1a] p-4 rounded-xl border border-[#3a2a22] h-fit sticky top-6">
-
-            <h2 className="mb-4 font-semibold">AI Insights</h2>
-
-            <ul className="text-sm text-gray-400 space-y-2">
-              <li>• You saved {items.length} items</li>
-              <li>• Most frequent: {getTopType(items)}</li>
-              <li>• Suggested: AI + Startups</li>
-            </ul>
-
+        {/* 🔥 FULLSCREEN MODAL */}
+        {previewItem && (
+          <div
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            onClick={() => setPreviewItem(null)}
+          >
             <button
-              onClick={() => navigate("/chat")}
-              className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-500 py-2 rounded-lg"
+              className="absolute top-6 right-6 text-white text-xl"
+              onClick={() => setPreviewItem(null)}
             >
-              Ask AI
+              ✕
             </button>
 
+            {previewItem.type === "image" && (
+              <img
+                src={previewItem.src}
+                className="max-w-[90%] max-h-[90vh] rounded-xl"
+              />
+            )}
+
+            {previewItem.type === "pdf" && (
+              <iframe
+                src={previewItem.src}
+                className="w-[90%] h-[90vh] bg-white rounded-xl"
+                title="PDF"
+              />
+            )}
+
+            {previewItem.type === "youtube" && (
+              <iframe
+                width="90%"
+                height="80%"
+                src={`https://www.youtube.com/embed/${getYouTubeId(previewItem.src)}?autoplay=1`}
+                className="rounded-xl"
+                allow="autoplay"
+                allowFullScreen
+                title="YouTube"
+              />
+            )}
           </div>
         )}
 
-      </div>
-
-    </Layout>
-  );
-}
-
-/* HELPERS */
-
-function generateSmartTitle(item) {
-  if (item.title && !item.title.toLowerCase().includes("not enough"))
-    return item.title;
-
-  if (item.summary && !item.summary.toLowerCase().includes("not enough"))
-    return item.summary.slice(0, 50);
-
-  if (item.content) return item.content.slice(0, 50);
-
-  return "Quick Note";
-}
-
-function generateSmartSummary(item) {
-  if (item.summary && !item.summary.toLowerCase().includes("not enough"))
-    return item.summary.slice(0, 80);
-
-  if (item.content) return item.content.slice(0, 80);
-
-  return "Click to expand";
-}
-
-function timeAgo(date) {
-  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  const intervals = { day: 86400, hour: 3600, minute: 60 };
-
-  for (let key in intervals) {
-    const value = Math.floor(seconds / intervals[key]);
-    if (value >= 1) {
-      return `${value} ${key}${value > 1 ? "s" : ""} ago`;
-    }
+      </Layout>
+    );
   }
-  return "just now";
-}
 
-function getTopType(items) {
-  if (!items.length) return "-";
+  /* HELPERS */
 
-  const count = {};
-  items.forEach(i => {
-    count[i.type] = (count[i.type] || 0) + 1;
-  });
+  function generateSmartTitle(item) {
+    if (item.title) return item.title;
+    if (item.content) return item.content.slice(0, 50);
+    return "Quick Note";
+  }
 
-  return Object.keys(count).reduce((a, b) =>
-    count[a] > count[b] ? a : b
-  );
-}
+  function generateSmartSummary(item) {
+    if (item.summary) return item.summary.slice(0, 80);
+    if (item.content) return item.content.slice(0, 80);
+    return "Click to expand";
+  }
+
+  function timeAgo(date) {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    const intervals = { day: 86400, hour: 3600, minute: 60 };
+
+    for (let key in intervals) {
+      const value = Math.floor(seconds / intervals[key]);
+      if (value >= 1) {
+        return `${value} ${key}${value > 1 ? "s" : ""} ago`;
+      }
+    }
+    return "just now";
+  }
+
+  function getTopType(items) {
+    if (!items.length) return "-";
+
+    const count = {};
+    items.forEach(i => {
+      count[i.type] = (count[i.type] || 0) + 1;
+    });
+
+    return Object.keys(count).reduce((a, b) =>
+      count[a] > count[b] ? a : b
+    );
+  }

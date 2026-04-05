@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
@@ -8,20 +10,24 @@ import searchRoutes from "./modules/search/search.routes.js";
 import chatRoutes from "./modules/chat/chat.routes.js";
 import graphRoutes from "./modules/graph/graph.routes.js";
 import collectionRoutes from "./modules/collection/collection.routes.js";
-import resurfaceRoutes from "./modules/resurface/resurface.routes.js"
+import resurfaceRoutes from "./modules/resurface/resurface.routes.js";
 
 import { errorHandler } from "./middleware/error.middleware.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
 
 app.use(express.json());
+
+// SERVE UPLOADS
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // ROUTES
 app.use("/api/auth", authRoutes);
