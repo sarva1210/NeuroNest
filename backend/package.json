@@ -5,8 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx nodemon server.js",
+    "dev": "nodemon server.js",
+    "start": "node server.js",
     "worker": "node src/queues/workers/item.worker.js"
   },
   "keywords": [],
