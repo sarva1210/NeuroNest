@@ -11,58 +11,40 @@ export const chatWithMemory = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Message required" });
   }
 
-  // MEMORY
-  const pastItems = await Item.find({ userId })
-    .sort({ createdAt: -1 })
-    .limit(5);
-
-  const memoryContext = pastItems
-    .map(i => i.content || i.summary || "")
-    .join("\n");
-
   let context = "";
   let source = "general";
 
-  // Priority 1: Memory
-  if (memoryContext && memoryContext.length > 30) {
-    context = memoryContext;
-    source = "memory";
+  // Priority 1: Semantic memory via embeddings (use your chat.service.js)
+  try {
+    const { answer: memAnswer, sources } = await chatWithMemoryService(message, userId);
+    // Only use memory if similarity score is high enough (handled in service)
+    if (sources.length > 0) {
+      context = sources.map(i => i.content || i.summary || "").join("\n");
+      source = "memory";
+    }
+  } catch (err) {
+    console.log("Memory service failed:", err.message);
   }
 
-  // Priority 2: Web
-  else {
+  // Priority 2: Web search if no relevant memory
+  if (!context) {
     try {
       const webResults = await searchWeb(message);
-
       if (webResults?.length) {
-        context = webResults
-          .map(r => `${r.title}\n${r.content}`)
-          .join("\n\n");
-
+        context = webResults.map(r => `${r.title}\n${r.content}`).join("\n\n");
         source = "web";
       }
     } catch (err) {
-      console.log("Web failed");
+      console.log("Web search failed:", err.message);
     }
   }
 
-  // PROMPT
   const prompt = `
-You are a highly intelligent and friendly AI assistant.
+You are a helpful AI assistant. Answer the user's question accurately and concisely.
 
-Rules:
-- ALWAYS answer the question
-- If context exists -> use it
-- If no context -> answer using your own knowledge
-- NEVER say "not enough data"
-- NEVER say "I don't know"
-- Be clear and helpful
+${context ? `Context:\n${context}\n` : ""}
 
-Context:
-${context || "No context available"}
-
-User Question:
-${message}
+User Question: ${message}
 
 Answer:
 `;
@@ -72,14 +54,16 @@ Answer:
   try {
     answer = await generateAnswer(message, prompt);
   } catch (err) {
-    console.log("AI error:", err);
+    console.error("AI generation error:", err);
+    return res.status(500).json({ message: "AI service failed" });
   }
 
-  if (!answer || answer.toLowerCase().includes("not enough")) {
-    answer = `Here’s a clear answer:\n\n${message} is something I can explain simply.\n\nEven without specific stored data, generally speaking:\n\n- JavaScript is preferred for speed and flexibility\n- TypeScript is preferred for large-scale safety\n\nIt depends on your use case`;
+  // NO hardcoded fallback - if answer is empty, return an honest error
+  if (!answer?.trim()) {
+    return res.status(500).json({ message: "Failed to generate answer" });
   }
 
-  // SAVE MEMORY
+  // Save to memory
   await Item.create({
     userId,
     type: "text",
@@ -90,8 +74,5 @@ Answer:
     lastAccessed: new Date()
   });
 
-  res.json({
-    reply: answer,
-    source
-  });
+  res.json({ reply: answer, source });
 });

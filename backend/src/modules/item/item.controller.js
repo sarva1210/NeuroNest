@@ -5,7 +5,13 @@ import Item from "./item.model.js";
 
 // CREATE ITEM
 export const createItem = asyncHandler(async (req, res) => {
-  const { type, content, url, fileUrl } = req.body;
+  const { type, content, url } = req.body;
+
+  let fileUrl = null;
+
+  if (req.file) {
+    fileUrl = req.file.filename;
+  }
 
   const item = await createItemService({
     type,
@@ -16,7 +22,7 @@ export const createItem = asyncHandler(async (req, res) => {
     status: "processing",
   });
 
-  addItemJob(item._id);
+  await addItemJob(item._id);
 
   res.json({
     success: true,

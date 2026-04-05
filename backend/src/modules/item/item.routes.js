@@ -1,61 +1,31 @@
 import express from "express";
-import Item from "./item.model.js"; // adjust path if needed
+import multer from "multer";
+import { createItem, getItems, openItem, getStats } from "./item.controller.js";
+import { authMiddleware } from "../../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-/* ---------------- GET ALL ---------------- */
-router.get("/", async (req, res) => {
-  try {
-    const items = await Item.find().sort({ createdAt: -1 });
-    res.json({ data: items });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
 
-/* ---------------- GET ONE ---------------- */
-router.get("/:id", async (req, res) => {
-  try {
-    const item = await Item.findById(req.params.id);
-    res.json({ data: item });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+const upload = multer({ storage });
 
-/* ---------------- UPDATE ---------------- */
-router.put("/:id", async (req, res) => {
-  try {
-    const updates = {};
+// CREATE
+router.post("/", authMiddleware, upload.single("file"), createItem);
 
-    if (req.body.title !== undefined) {
-      updates.title = req.body.title;
-    }
+// GET USER ITEMS
+router.get("/", authMiddleware, getItems);
 
-    if (req.body.summary !== undefined) {
-      updates.summary = req.body.summary;
-    }
+// OPEN ITEM
+router.get("/:itemId", authMiddleware, openItem);
 
-    const updated = await Item.findByIdAndUpdate(
-      req.params.id,
-      { $set: updates },
-      { new: true }
-    );
-
-    res.json({ data: updated });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ---------------- DELETE ---------------- */
-router.delete("/:id", async (req, res) => {
-  try {
-    await Item.findByIdAndDelete(req.params.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// STATS
+router.get("/stats", authMiddleware, getStats);
 
 export default router;

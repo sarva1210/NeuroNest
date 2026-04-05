@@ -26,31 +26,30 @@ export const chatWithMemoryService = async (query, userId) => {
       item,
       score: cosineSimilarity(queryEmbedding, item.embedding)
     }))
+    .filter(({ score }) => score > 0.75)  // ← only keep relevant memories
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
   const context = scored
     .map(
       ({ item }, i) =>
-        `Memory ${i + 1}:\n${item.content || ""}\nSummary: ${
-          item.summary || ""
-        }`
+        `Memory ${i + 1}:\n${item.content || ""}\nSummary: ${item.summary || ""}`
     )
     .join("\n\n");
 
   const prompt = `
-You are an AI assistant with access to user's saved knowledge.
+You are a personal AI assistant with access to the user's saved knowledge.
+
+${context
+  ? `Relevant memories from the user's knowledge base:\n${context}\n\nUse these memories to help answer if relevant.`
+  : "No relevant memories found for this question."
+}
+
+Answer the question clearly and helpfully using your own knowledge if no memories are relevant.
+Never say "I don't know" or "not enough data" — always give a useful answer.
 
 User Question:
 ${query}
-
-Relevant Memories:
-${context}
-
-Instructions:
-- Answer using the memories
-- Be clear and helpful
-- If unsure, say you don't have enough data
 `;
 
   const res = await client.chat.complete({
