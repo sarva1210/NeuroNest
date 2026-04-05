@@ -1,31 +1,14 @@
 import express from "express";
-import multer from "multer";
-import { createItem, getItems, openItem, getStats } from "./item.controller.js";
+import { createItem, getItems, openItem, getStats, deleteItem } from "./item.controller.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
+import { upload } from "../../middleware/upload.middleware.js";
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-
-const upload = multer({ storage });
-
-// CREATE
 router.post("/", authMiddleware, upload.single("file"), createItem);
-
-// GET USER ITEMS
 router.get("/", authMiddleware, getItems);
-
-// OPEN ITEM
-router.get("/:itemId", authMiddleware, openItem);
-
-// STATS
 router.get("/stats", authMiddleware, getStats);
+router.get("/:itemId", authMiddleware, openItem);
+router.delete("/:itemId", authMiddleware, deleteItem);
 
 export default router;

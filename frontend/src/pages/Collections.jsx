@@ -14,44 +14,51 @@ export default function Collections() {
   const fetchCollections = async () => {
     try {
       const res = await API.get("/collections");
-      setCollections(res.data.data || []);
+      setCollections(res.data?.data || []);
     } catch (err) {
-      console.log(err);
+      console.error("Fetch error:", err);
+      setCollections([]);
     }
   };
 
-  // REATE COLLECTION (no duplicate clicks)
+  // ✅ CREATE (INSTANT UI UPDATE)
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim()) return alert("Enter collection name");
 
     try {
       setLoading(true);
 
-      await API.post("/collections", { name });
+      const res = await API.post("/collections", { name });
+
+      // 🔥 INSTANT ADD (no reload)
+      setCollections((prev) => [res.data.data, ...prev]);
 
       setName("");
-      fetchCollections();
     } catch (err) {
-      console.log(err.response?.data || err.message);
-      alert("Collection already exists");
+      console.error(err.response?.data || err.message);
+      alert(err.response?.data?.message || "Error creating collection");
     } finally {
       setLoading(false);
     }
   };
 
-  // DELETE COLLECTION
+  // ✅ DELETE (INSTANT REMOVE)
   const handleDelete = async (id) => {
+    if (!window.confirm("Delete this collection?")) return;
+
     try {
       await API.delete(`/collections/${id}`);
-      fetchCollections();
+
+      // 🔥 REMOVE FROM UI
+      setCollections((prev) => prev.filter((c) => c._id !== id));
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 
-  // REMOVE DUPLICATES (frontend safety)
+  // 🔥 SAFE UNIQUE
   const uniqueCollections = Array.from(
-    new Map(collections.map((c) => [c.name, c])).values()
+    new Map(collections.map((c) => [c._id, c])).values()
   );
 
   return (
@@ -78,10 +85,14 @@ export default function Collections() {
 
       {/* LIST */}
       <div className="space-y-4">
+        {uniqueCollections.length === 0 && (
+          <p className="text-zinc-400">No collections yet</p>
+        )}
+
         {uniqueCollections.map((col) => (
           <div
             key={col._id}
-            className="flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800"
+            className="flex justify-between items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800 hover:border-purple-500 transition"
           >
             <div>
               <h2 className="font-semibold">{col.name}</h2>

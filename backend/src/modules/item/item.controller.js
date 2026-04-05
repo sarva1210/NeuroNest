@@ -5,16 +5,17 @@ import Item from "./item.model.js";
 
 // CREATE ITEM
 export const createItem = asyncHandler(async (req, res) => {
-  const { type, content, url } = req.body;
+  const { type, content, url, title } = req.body;
 
   let fileUrl = null;
 
   if (req.file) {
-    fileUrl = req.file.filename;
+    fileUrl = `http://localhost:3000/uploads/${req.file.filename}`; // ← this line only
   }
 
   const item = await createItemService({
     type,
+    title: title || req.file?.originalname || "",
     content,
     url,
     fileUrl,
@@ -42,7 +43,7 @@ export const getItems = asyncHandler(async (req, res) => {
   });
 });
 
-// 👁 OPEN ITEM (TRACK USAGE)
+// OPEN ITEM (TRACK USAGE)
 export const openItem = asyncHandler(async (req, res) => {
   const { itemId } = req.params;
 
@@ -72,3 +73,8 @@ export const getStats = asyncHandler(async (req, res) => {
   res.json(stats);
 });
 
+export const deleteItem = asyncHandler(async (req, res) => {
+  const { itemId } = req.params;
+  await Item.findOneAndDelete({ _id: itemId, userId: req.user.id });
+  res.json({ success: true, message: "Deleted" });
+});
