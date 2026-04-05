@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://neuronnest-2.onrender.com/api",
+  baseURL: import.meta.env.VITE_API_URL + "/api",
 });
 
 API.interceptors.response.use(

@@ -23,7 +23,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "https://neuronnest-2.onrender.com",
+  "https://neuronest-3.onrender.com",
 ];
 
 app.use(
