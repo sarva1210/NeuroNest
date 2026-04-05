@@ -9,12 +9,11 @@ export const getGraph = asyncHandler(async (req, res) => {
   const items = await Item.find({ userId });
   const connections = await Connection.find({ userId });
 
-  // SAFE NODES
+  // NODES
   const nodes = items.map((item) => ({
     id: item._id.toString(),
 
-    // BETTER LABEL (handles all types)
-    label:
+    name:
       item.title ||
       item.content?.slice(0, 25) ||
       item.url?.slice(0, 30) ||
@@ -22,33 +21,27 @@ export const getGraph = asyncHandler(async (req, res) => {
 
     type: item.type || "text",
     tags: item.tags || [],
-
-    size: 10,
+    size: 8,
   }));
 
-  // SAFE LINKS
+  // LINKS
   const links = connections
-    .filter(
-      (conn) =>
-        conn.from && conn.to // prevent null crash
-    )
+    .filter((conn) => conn.from && conn.to)
     .map((conn) => ({
       source: conn.from.toString(),
       target: conn.to.toString(),
-      weight: conn.score || 1,
+      value: conn.score || 1,
     }));
 
+  // 🔥 IMPORTANT: DIRECT FORMAT
   res.json({
-    success: true,
-    data: {
-      nodes,
-      links,
-    },
+    nodes,
+    links,
   });
 });
 
 
-// RELATED ITEMS (FIXED + SAFE)
+// RELATED ITEMS
 export const getRelatedItems = asyncHandler(async (req, res) => {
   const { itemId } = req.params;
   const userId = req.user.id;
